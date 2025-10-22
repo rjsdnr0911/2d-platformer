@@ -94,7 +94,9 @@ class Enemy {
             y: this.sprite.y + 20,
             duration: 300,
             onComplete: () => {
-                // 아이템 드롭 (나중에 구현)
+                // 아이템 드롭
+                this.dropItem();
+                // 하위 클래스 onDeath 호출
                 this.onDeath();
                 this.destroy();
             }
@@ -107,7 +109,45 @@ class Enemy {
 
     // 사망 시 호출 (하위 클래스에서 오버라이드 가능)
     onDeath() {
-        // 아이템 드롭, 점수 추가 등
+        // 능력 오브 드롭 등
+    }
+
+    // 아이템 드롭 (20% 확률)
+    dropItem() {
+        const dropChance = Math.random();
+
+        if (dropChance > 0.2) return; // 80% 확률로 아무것도 드롭 안 함
+
+        const itemType = Math.random();
+        let item = null;
+
+        // 드롭 확률
+        if (itemType < 0.4) {
+            // 40% - 작은 하트
+            item = new SmallHeart(this.scene, this.sprite.x, this.sprite.y);
+        } else if (itemType < 0.6) {
+            // 20% - 큰 하트
+            item = new BigHeart(this.scene, this.sprite.x, this.sprite.y);
+        } else if (itemType < 0.75) {
+            // 15% - 패시브 아이템 (랜덤)
+            const passiveItems = [
+                SpeedBoots, WingedBoots, TimeClock,
+                IronShield, HealthRing, DashGem, PhantomCloak
+            ];
+            const randomPassive = Phaser.Utils.Array.GetRandom(passiveItems);
+            item = new randomPassive(this.scene, this.sprite.x, this.sprite.y);
+        } else if (itemType < 0.90) {
+            // 15% - 맥시멀 토마토
+            item = new MaximalTomato(this.scene, this.sprite.x, this.sprite.y);
+        } else {
+            // 10% - 무적 사탕
+            item = new InvincibleCandy(this.scene, this.sprite.x, this.sprite.y);
+        }
+
+        // 전역 아이템 배열에 추가
+        if (item && typeof window.items !== 'undefined') {
+            window.items.push(item);
+        }
     }
 
     // AI 업데이트 (하위 클래스에서 오버라이드)

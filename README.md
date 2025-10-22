@@ -2,8 +2,8 @@
 
 Kirby와 Skul: The Hero Slayer에서 영감을 받은 능력 교체 시스템을 가진 2D 액션 플랫포머 게임입니다.
 
-![Version](https://img.shields.io/badge/version-0.3.0-blue)
-![Phase](https://img.shields.io/badge/phase-3-green)
+![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Phase](https://img.shields.io/badge/phase-4-green)
 ![Phaser](https://img.shields.io/badge/Phaser-3.87.0-ff69b4)
 
 ## 🌟 주요 특징
@@ -13,6 +13,9 @@ Kirby와 Skul: The Hero Slayer에서 영감을 받은 능력 교체 시스템을
 - **능력별 특수 효과**: 능력 교체 시 발동되는 고유 효과
 - **3종류의 적**: 슬라임, 검병, 마법사
 - **능력 획득 시스템**: 적을 처치하면 능력 오브 드롭
+- **아이템 시스템** (NEW!): Skul/Kirby 스타일
+  - **소모성 아이템**: 체력 회복, 무적 사탕
+  - **패시브 아이템**: 영구 능력 강화 (최대 3개)
 
 ## 🎯 게임 방법
 
@@ -54,6 +57,23 @@ Kirby와 Skul: The Hero Slayer에서 영감을 받은 능력 교체 시스템을
 - **스킬**: 분열 화살 (9발)
 - **교체 효과**: 후방 회피 점프
 
+### 아이템 설명
+
+#### 💚 소모성 아이템
+- **작은 하트**: HP 10 회복
+- **큰 하트**: HP 30 회복
+- **🍅 맥시멀 토마토** (Kirby): 체력 완전 회복
+- **🍬 무적 사탕** (Kirby): 5초 무적
+
+#### 🎒 패시브 아이템 (Skul 스타일 - 최대 3개)
+- **👟 질풍의 신발**: 이동속도 +30%
+- **🪶 하늘의 날개**: 점프력 +40%
+- **⏰ 시간의 시계**: 쿨타임 -20%
+- **🛡️ 철의 방패**: 받는 데미지 -30%
+- **💍 생명의 반지**: 최대 HP +20
+- **💎 신속의 보석**: 대시 쿨타임 -40%
+- **🧥 환영의 망토**: 무적 시간 +50%
+
 ## 🚀 플레이 방법
 
 ### 온라인 플레이
@@ -92,6 +112,10 @@ git clone https://github.com/[사용자명]/2d-platformer.git
     │   ├── MagicAbility.js
     │   ├── HammerAbility.js
     │   └── BowAbility.js
+    ├── items/             # 아이템 시스템 (NEW!)
+    │   ├── ItemBase.js
+    │   ├── ConsumableItems.js
+    │   └── PassiveItems.js
     ├── entities/          # 게임 엔티티
     │   ├── Player.js
     │   ├── Enemy.js
@@ -109,7 +133,7 @@ git clone https://github.com/[사용자명]/2d-platformer.git
 - [x] **Phase 1**: 핵심 전투 시스템
 - [x] **Phase 2**: 모든 능력 & 적 구현
 - [x] **Phase 3**: Scene 시스템 (메뉴, 게임, 게임오버)
-- [ ] **Phase 4**: 아이템 시스템
+- [x] **Phase 4**: 아이템 시스템 (Skul/Kirby 스타일)
 - [ ] **Phase 5**: 스테이지 & 보스
 - [ ] **Phase 6**: 사운드 & 비주얼 개선
 

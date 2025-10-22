@@ -17,12 +17,14 @@ class GameScene extends Phaser.Scene {
             // 전역 변수 초기화
             window.player = null;
             window.abilityOrbs = [];
+            window.items = []; // 아이템 배열
 
             // 로컬 변수
             this.platforms = null;
             this.groundGroup = null;
             this.enemies = null;
             this.enemyList = [];
+            this.itemList = [];
 
             // 입력
             this.cursors = null;
@@ -32,6 +34,7 @@ class GameScene extends Phaser.Scene {
             this.healthText = null;
             this.abilityText = null;
             this.cooldownText = null;
+            this.passiveItemsText = null;
 
             // 월드 크기 설정
             this.physics.world.setBounds(0, 0, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
@@ -331,6 +334,15 @@ class GameScene extends Phaser.Scene {
         );
         controlsText.setOrigin(1, 0);
         controlsText.setScrollFactor(0);
+
+        // 패시브 아이템 표시
+        this.passiveItemsText = this.add.text(16, 110, '', {
+            fontSize: '14px',
+            fill: '#fff',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        });
+        this.passiveItemsText.setScrollFactor(0);
     }
 
     updateUI() {
@@ -363,6 +375,16 @@ class GameScene extends Phaser.Scene {
                 this.cooldownText.setText(`공격: ${basicReady} | 강공격: ${strongReady} | 스킬: ${skillReady}`);
             } else {
                 this.cooldownText.setText('');
+            }
+        }
+
+        // 패시브 아이템 표시
+        if (window.player && this.passiveItemsText) {
+            if (window.player.passiveItems.length > 0) {
+                const itemIcons = window.player.passiveItems.map(item => item.icon).join(' ');
+                this.passiveItemsText.setText(`패시브: ${itemIcons}`);
+            } else {
+                this.passiveItemsText.setText('');
             }
         }
     }
@@ -424,6 +446,29 @@ class GameScene extends Phaser.Scene {
 
             // 능력 오브 정리
             window.abilityOrbs = window.abilityOrbs.filter(orb => orb && orb.active);
+
+            // 아이템 업데이트 및 충돌 체크
+            window.items.forEach(item => {
+                if (item && item.isActive) {
+                    item.update();
+
+                    // 플레이어와 아이템 충돌
+                    if (window.player && window.player.sprite) {
+                        this.physics.overlap(
+                            window.player.sprite,
+                            item.sprite,
+                            () => {
+                                item.onPickup(window.player);
+                            },
+                            null,
+                            this
+                        );
+                    }
+                }
+            });
+
+            // 비활성 아이템 제거
+            window.items = window.items.filter(item => item && item.isActive);
 
             // UI 업데이트
             this.updateUI();

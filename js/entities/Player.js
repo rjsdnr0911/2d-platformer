@@ -48,6 +48,18 @@ class Player {
         this.isAttacking = false;
         this.lastAttackTime = 0;
 
+        // 패시브 아이템 시스템 (최대 3개)
+        this.passiveItems = [];
+        this.maxPassiveItems = 3;
+
+        // 아이템 보너스
+        this.speedBonus = 0;
+        this.jumpBonus = 0;
+        this.cooldownReduction = 0;
+        this.damageReduction = 0;
+        this.dashCooldownReduction = 0;
+        this.invincibilityBonus = 0;
+
         // 플레이어 데이터 저장 (접근용)
         this.sprite.setData('entity', this);
         this.sprite.setData('type', 'player');
@@ -95,7 +107,7 @@ class Player {
     move(direction) {
         if (!this.isAlive || this.isDashing) return;
 
-        const velocity = CONSTANTS.PLAYER.SPEED * direction;
+        const velocity = (CONSTANTS.PLAYER.SPEED + this.speedBonus) * direction;
         this.sprite.body.setVelocityX(velocity);
 
         // 방향 업데이트
@@ -112,7 +124,8 @@ class Player {
 
         // 바닥에 닿아 있을 때만 점프
         if (this.sprite.body.touching.down) {
-            this.sprite.body.setVelocityY(CONSTANTS.PLAYER.JUMP_VELOCITY);
+            const jumpPower = CONSTANTS.PLAYER.JUMP_VELOCITY * (1 + this.jumpBonus);
+            this.sprite.body.setVelocityY(jumpPower);
         }
     }
 
@@ -122,8 +135,9 @@ class Player {
 
         const currentTime = this.scene.time.now;
 
-        // 쿨타임 체크
-        if (currentTime - this.lastDashTime < CONSTANTS.PLAYER.DASH_COOLDOWN) {
+        // 쿨타임 체크 (쿨타임 감소 적용)
+        const dashCooldown = CONSTANTS.PLAYER.DASH_COOLDOWN * (1 - this.dashCooldownReduction);
+        if (currentTime - this.lastDashTime < dashCooldown) {
             return;
         }
 
@@ -183,7 +197,9 @@ class Player {
     takeDamage(damage) {
         if (!this.isAlive || this.isInvincible) return;
 
-        this.hp -= damage;
+        // 데미지 감소 적용
+        const actualDamage = Math.ceil(damage * (1 - this.damageReduction));
+        this.hp -= actualDamage;
 
         if (this.hp <= 0) {
             this.hp = 0;
@@ -197,7 +213,7 @@ class Player {
         }
 
         if (CONSTANTS.GAME.DEBUG) {
-            console.log(`플레이어 피격: ${damage} 데미지, 남은 HP: ${this.hp}`);
+            console.log(`플레이어 피격: ${actualDamage} 데미지, 남은 HP: ${this.hp}`);
         }
     }
 
@@ -205,17 +221,20 @@ class Player {
     startInvincibility() {
         this.isInvincible = true;
 
+        // 무적 시간 보너스 적용
+        const invincibleTime = CONSTANTS.PLAYER.INVINCIBLE_TIME * (1 + this.invincibilityBonus);
+
         // 깜빡임 효과
         this.scene.tweens.add({
             targets: this.sprite,
             alpha: 0.3,
             duration: 100,
             yoyo: true,
-            repeat: CONSTANTS.PLAYER.INVINCIBLE_TIME / 200
+            repeat: invincibleTime / 200
         });
 
         // 무적 종료
-        this.scene.time.delayedCall(CONSTANTS.PLAYER.INVINCIBLE_TIME, () => {
+        this.scene.time.delayedCall(invincibleTime, () => {
             this.isInvincible = false;
             this.sprite.setAlpha(1);
         });
@@ -265,6 +284,69 @@ class Player {
 
         if (CONSTANTS.GAME.DEBUG) {
             console.log(`체력 회복: +${amount}, 현재 HP: ${this.hp}`);
+        }
+    }
+
+    // 패시브 아이템 추가 (Skul 스타일)
+    addPassiveItem(item) {
+        // 이미 같은 아이템을 가지고 있는지 확인
+        const existingItem = this.passiveItems.find(i => i.id === item.id);
+        if (existingItem) {
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log('이미 보유 중인 아이템:', item.name);
+            }
+            return false;
+        }
+
+        // 최대 개수 체크
+        if (this.passiveItems.length >= this.maxPassiveItems) {
+            // 가장 오래된 아이템 제거
+            const removedItem = this.passiveItems.shift();
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log('아이템 교체:', removedItem.name, '→', item.name);
+            }
+        }
+
+        // 아이템 추가 및 효과 적용
+        this.passiveItems.push(item);
+        if (item.effect) {
+            item.effect();
+        }
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('패시브 아이템 획득:', item.name);
+            console.log('현재 패시브 아이템:', this.passiveItems.map(i => i.name));
+        }
+
+        return true;
+    }
+
+    // 무적 부여 (무적 사탕용)
+    grantInvincibility(duration) {
+        this.isInvincible = true;
+
+        // 골드 색상으로 변경
+        const originalColor = this.sprite.fillColor;
+        this.sprite.setFillStyle(0xFFD700);
+
+        // 깜빡임 효과
+        this.scene.tweens.add({
+            targets: this.sprite,
+            alpha: 0.8,
+            duration: 150,
+            yoyo: true,
+            repeat: duration / 300
+        });
+
+        // 무적 종료
+        this.scene.time.delayedCall(duration, () => {
+            this.isInvincible = false;
+            this.sprite.setFillStyle(originalColor);
+            this.sprite.setAlpha(1);
+        });
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log(`무적 부여: ${duration}ms`);
         }
     }
 
