@@ -1,0 +1,23 @@
+# OS 관련
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 에디터 관련
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 임시 파일
+*.log
+*.tmp
+temp/
+
+# Node.js (나중에 필요할 수 있음)
+node_modules/
+package-lock.json
+
+# 기타
+.env
