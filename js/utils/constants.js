@@ -21,6 +21,8 @@ const CONSTANTS = {
         MAX_HP: 50, // 하트 5개 * 10HP
         SPEED: 200,
         JUMP_VELOCITY: -400,
+        DOUBLE_JUMP_VELOCITY: -350, // 2단 점프는 조금 낮게
+        MAX_JUMPS: 2, // 최대 점프 횟수 (더블 점프)
         DASH_VELOCITY: 400,
         DASH_DURATION: 200, // ms
         DASH_COOLDOWN: 1000, // ms

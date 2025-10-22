@@ -40,6 +40,10 @@ class Player {
         this.lastDashTime = 0;
         this.dashTimer = null;
 
+        // 점프 관련
+        this.jumpCount = 0; // 현재 점프 횟수
+        this.maxJumps = CONSTANTS.PLAYER.MAX_JUMPS; // 최대 점프 횟수
+
         // 능력 시스템
         this.abilities = [null, null]; // [슬롯A, 슬롯B]
         this.currentAbilityIndex = 0;
@@ -118,15 +122,70 @@ class Player {
         }
     }
 
-    // 점프
+    // 점프 (더블 점프 지원)
     jump() {
         if (!this.isAlive || this.isDashing) return;
 
-        // 바닥에 닿아 있을 때만 점프
+        // 바닥에 닿아있으면 점프 카운트 리셋
         if (this.sprite.body.touching.down) {
-            const jumpPower = CONSTANTS.PLAYER.JUMP_VELOCITY * (1 + this.jumpBonus);
-            this.sprite.body.setVelocityY(jumpPower);
+            this.jumpCount = 0;
         }
+
+        // 최대 점프 횟수 체크
+        if (this.jumpCount >= this.maxJumps) {
+            return;
+        }
+
+        // 점프 실행
+        let jumpPower;
+        if (this.jumpCount === 0) {
+            // 첫 번째 점프 (지상 점프)
+            jumpPower = CONSTANTS.PLAYER.JUMP_VELOCITY * (1 + this.jumpBonus);
+        } else {
+            // 두 번째 점프 (공중 점프 - 더블 점프)
+            jumpPower = CONSTANTS.PLAYER.DOUBLE_JUMP_VELOCITY * (1 + this.jumpBonus);
+
+            // 더블 점프 이펙트
+            this.playDoubleJumpEffect();
+        }
+
+        this.sprite.body.setVelocityY(jumpPower);
+        this.jumpCount++;
+
+        if (CONSTANTS.GAME.DEBUG && this.jumpCount > 1) {
+            console.log('더블 점프!');
+        }
+    }
+
+    // 더블 점프 이펙트
+    playDoubleJumpEffect() {
+        // 발 아래에 작은 구름 효과
+        const cloud = this.scene.add.circle(
+            this.sprite.x,
+            this.sprite.y + CONSTANTS.PLAYER.HEIGHT / 2,
+            15,
+            0xFFFFFF,
+            0.6
+        );
+
+        this.scene.tweens.add({
+            targets: cloud,
+            scale: 1.5,
+            alpha: 0,
+            duration: 300,
+            onComplete: () => {
+                cloud.destroy();
+            }
+        });
+
+        // 플레이어 짧은 회전 효과
+        const originalAngle = this.sprite.angle;
+        this.scene.tweens.add({
+            targets: this.sprite,
+            angle: originalAngle + 360,
+            duration: 400,
+            ease: 'Cubic.easeOut'
+        });
     }
 
     // 대시
@@ -355,6 +414,11 @@ class Player {
         if (!this.isAlive) return;
 
         try {
+            // 바닥에 닿으면 점프 카운트 리셋
+            if (this.sprite.body.touching.down) {
+                this.jumpCount = 0;
+            }
+
             // 좌우 이동
             if (cursors.left.isDown) {
                 this.move(-1);
@@ -362,7 +426,7 @@ class Player {
                 this.move(1);
             }
 
-            // 점프
+            // 점프 (더블 점프)
             if (Phaser.Input.Keyboard.JustDown(cursors.up)) {
                 this.jump();
             }
