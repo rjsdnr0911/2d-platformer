@@ -3,15 +3,54 @@ class Slime extends Enemy {
     constructor(scene, x, y) {
         super(scene, x, y, CONSTANTS.ENEMIES.SLIME);
 
+        // Rectangle sprite 제거
+        if (this.sprite) {
+            this.sprite.destroy();
+        }
+
+        // 스프라이트시트로 교체
+        this.sprite = scene.add.sprite(x, y, 'slime_idle');
+        this.sprite.play('slime_idle');
+
+        // 물리 바디 재설정
+        scene.physics.add.existing(this.sprite);
+        this.sprite.body.setBounce(0.1);
+        this.sprite.body.setCollideWorldBounds(true);
+
+        // 히트박스 조정 (44x30 스프라이트 기준)
+        this.sprite.body.setSize(40, 26);
+        this.sprite.body.setOffset(2, 4);
+
+        // 데이터 재설정
+        this.sprite.setData('entity', this);
+        this.sprite.setData('type', 'enemy');
+        this.sprite.setData('damage', this.damage);
+
         this.jumpCooldown = 0;
-        this.jumpInterval = 2000; // 2초마다 점프
+        this.jumpInterval = 2000;
+        this.bouncing = false;
     }
 
     updateAI() {
         if (!this.isAlive || this.isHit) return;
+        if (!this.sprite || !this.sprite.body) return;
 
-        // 기본 순찰
-        super.updateAI();
+        // 이동 범위 체크
+        const distanceFromStart = this.sprite.x - this.startX;
+
+        if (Math.abs(distanceFromStart) > this.patrolDistance) {
+            this.direction *= -1;
+        }
+
+        // 이동
+        this.sprite.body.setVelocityX(this.speed * this.direction);
+
+        // 방향에 따라 스프라이트 뒤집기
+        if (this.direction > 0) {
+            this.sprite.setFlipX(false);
+        } else {
+            this.sprite.setFlipX(true);
+        }
 
         // 가끔 점프
         const currentTime = this.scene.time.now;
@@ -21,29 +60,60 @@ class Slime extends Enemy {
                 this.jumpCooldown = currentTime;
             }
         }
-
-        // 슬라임 특유의 통통 튀는 애니메이션
-        if (this.sprite.body.touching.down && !this.bouncing) {
-            this.bouncing = true;
-            this.scene.tweens.add({
-                targets: this.sprite,
-                scaleY: 0.8,
-                scaleX: 1.2,
-                duration: 100,
-                yoyo: true,
-                onComplete: () => {
-                    this.bouncing = false;
-                }
-            });
-        }
     }
 
     jump() {
         this.sprite.body.setVelocityY(-200);
     }
 
+    playHitEffect() {
+        // 피격 애니메이션
+        this.sprite.play('slime_hit');
+
+        // 원래 애니메이션으로 복귀
+        this.scene.time.delayedCall(400, () => {
+            if (this.sprite && this.sprite.active && this.isAlive) {
+                this.sprite.play('slime_idle');
+            }
+        });
+
+        // 넉백
+        const knockbackDirection = this.direction * -1;
+        this.sprite.body.setVelocityX(100 * knockbackDirection);
+        this.sprite.body.setVelocityY(-50);
+
+        // 피격 파티클
+        for (let i = 0; i < 3; i++) {
+            this.scene.time.delayedCall(i * 30, () => {
+                if (!this.sprite || !this.sprite.active) return;
+
+                const particle = this.scene.add.circle(
+                    this.sprite.x + (Math.random() - 0.5) * 40,
+                    this.sprite.y + (Math.random() - 0.5) * 30,
+                    Math.random() * 4 + 2,
+                    0x00FF00,
+                    0.8
+                );
+
+                this.scene.physics.add.existing(particle);
+                particle.body.setVelocity(
+                    (Math.random() - 0.5) * 100,
+                    -Math.random() * 100
+                );
+
+                this.scene.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    duration: 400,
+                    onComplete: () => {
+                        particle.destroy();
+                    }
+                });
+            });
+        }
+    }
+
     onDeath() {
-        // 슬라임 죽을 때 작은 슬라임 2개로 분열 (나중에 추가 가능)
         if (CONSTANTS.GAME.DEBUG) {
             console.log('슬라임 사망');
         }

@@ -59,24 +59,60 @@ class ItemBase {
     }
 
     playPickupEffect() {
-        // 반짝이는 효과
-        const flash = this.scene.add.circle(
-            this.sprite.x,
-            this.sprite.y,
-            20,
-            0xFFFF00,
-            0.8
-        );
+        // 반짝이는 효과 (여러 겹)
+        for (let i = 0; i < 3; i++) {
+            this.scene.time.delayedCall(i * 50, () => {
+                const flash = this.scene.add.circle(
+                    this.sprite.x,
+                    this.sprite.y,
+                    15 + i * 5,
+                    0xFFFF00,
+                    0.8 - i * 0.2
+                );
 
-        this.scene.tweens.add({
-            targets: flash,
-            scale: 2,
-            alpha: 0,
-            duration: 300,
-            onComplete: () => {
-                flash.destroy();
-            }
-        });
+                this.scene.tweens.add({
+                    targets: flash,
+                    scale: 2.5,
+                    alpha: 0,
+                    duration: 400,
+                    onComplete: () => {
+                        flash.destroy();
+                    }
+                });
+            });
+        }
+
+        // 반짝이 파티클 (별 모양)
+        for (let i = 0; i < 8; i++) {
+            this.scene.time.delayedCall(i * 30, () => {
+                const angle = (Math.PI * 2 * i) / 8;
+                const distance = 30 + Math.random() * 20;
+
+                const star = this.scene.add.star(
+                    this.sprite.x,
+                    this.sprite.y,
+                    4,
+                    4,
+                    8,
+                    0xFFFFFF,
+                    1
+                );
+
+                this.scene.tweens.add({
+                    targets: star,
+                    x: this.sprite.x + Math.cos(angle) * distance,
+                    y: this.sprite.y + Math.sin(angle) * distance,
+                    alpha: 0,
+                    scale: 0.5,
+                    angle: 720,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        star.destroy();
+                    }
+                });
+            });
+        }
 
         // 획득 텍스트
         const pickupText = this.scene.add.text(
@@ -84,19 +120,22 @@ class ItemBase {
             this.sprite.y - 30,
             this.config.name,
             {
-                fontSize: '14px',
+                fontSize: '16px',
                 fill: '#ffff00',
+                fontStyle: 'bold',
                 stroke: '#000',
-                strokeThickness: 3
+                strokeThickness: 4
             }
         );
         pickupText.setOrigin(0.5);
 
         this.scene.tweens.add({
             targets: pickupText,
-            y: pickupText.y - 30,
+            y: pickupText.y - 40,
+            scale: 1.2,
             alpha: 0,
-            duration: 800,
+            duration: 1000,
+            ease: 'Power2',
             onComplete: () => {
                 pickupText.destroy();
             }

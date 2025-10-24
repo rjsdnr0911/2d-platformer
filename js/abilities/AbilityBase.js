@@ -132,6 +132,9 @@ class AbilityBase {
                 hitbox.setAlpha(0);
             }
 
+            // 공격 이펙트 (베기 효과)
+            this.createSlashEffect(playerX + actualOffsetX, playerY + offsetY, directionMultiplier);
+
             // 일정 시간 후 제거
             this.scene.time.delayedCall(duration, () => {
                 if (hitbox && hitbox.active) {
@@ -181,6 +184,9 @@ class AbilityBase {
             projectile.setData('startX', playerX);
             projectile.setData('range', range);
 
+            // 투사체 트레일 효과
+            this.createProjectileTrail(projectile);
+
             this.activeAttacks.push(projectile);
 
             return projectile;
@@ -212,6 +218,89 @@ class AbilityBase {
             }
 
             return true;
+        });
+    }
+
+    // 베기 이펙트
+    createSlashEffect(x, y, direction) {
+        // 반원형 베기 궤적
+        const slashArc = this.scene.add.arc(
+            x, y,
+            30, // 반지름
+            direction > 0 ? -90 : 90, // 시작 각도
+            direction > 0 ? 90 : 270, // 끝 각도
+            false,
+            0xFFFFFF,
+            0.6
+        );
+        slashArc.setStrokeStyle(3, 0xFFFFFF, 1);
+
+        // 페이드 아웃
+        this.scene.tweens.add({
+            targets: slashArc,
+            alpha: 0,
+            scale: 1.5,
+            duration: 150,
+            onComplete: () => {
+                slashArc.destroy();
+            }
+        });
+
+        // 파티클 효과 (작은 불꽃)
+        for (let i = 0; i < 5; i++) {
+            this.scene.time.delayedCall(i * 20, () => {
+                const particle = this.scene.add.circle(
+                    x + (Math.random() - 0.5) * 40,
+                    y + (Math.random() - 0.5) * 40,
+                    Math.random() * 3 + 1,
+                    0xFFFFFF,
+                    0.8
+                );
+
+                this.scene.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    y: particle.y - 20,
+                    duration: 300,
+                    onComplete: () => {
+                        particle.destroy();
+                    }
+                });
+            });
+        }
+    }
+
+    // 투사체 트레일 효과
+    createProjectileTrail(projectile) {
+        const trailInterval = this.scene.time.addEvent({
+            delay: 50,
+            repeat: -1,
+            callback: () => {
+                if (!projectile || !projectile.active) {
+                    trailInterval.remove();
+                    return;
+                }
+
+                // 트레일 파티클
+                const trail = this.scene.add.circle(
+                    projectile.x,
+                    projectile.y,
+                    projectile.radius * 0.7,
+                    projectile.fillColor,
+                    0.5
+                );
+
+                // 페이드 아웃
+                this.scene.tweens.add({
+                    targets: trail,
+                    alpha: 0,
+                    scale: 0.5,
+                    duration: 200,
+                    onComplete: () => {
+                        trail.destroy();
+                    }
+                });
+            }
         });
     }
 

@@ -42,7 +42,7 @@ class MainMenuScene extends Phaser.Scene {
                 300,
                 '게임 시작',
                 () => {
-                    this.scene.start('GameScene');
+                    this.scene.start('StageSelectScene');
                 }
             );
 
@@ -79,13 +79,16 @@ class MainMenuScene extends Phaser.Scene {
             const version = this.add.text(
                 CONSTANTS.GAME.WIDTH - 10,
                 CONSTANTS.GAME.HEIGHT - 10,
-                'v0.3.0 - Phase 3',
+                'v0.5.0 - Phase 5 (진행중)',
                 {
                     fontSize: '14px',
                     fill: '#888'
                 }
             );
             version.setOrigin(1, 1);
+
+            // 전체화면 버튼
+            this.createFullscreenButton();
 
             if (CONSTANTS.GAME.DEBUG) {
                 console.log('메인 메뉴 로드 완료');
@@ -133,6 +136,66 @@ class MainMenuScene extends Phaser.Scene {
         });
 
         return { button, buttonText };
+    }
+
+    createFullscreenButton() {
+        // 전체화면 버튼 (오른쪽 상단)
+        const buttonSize = 40;
+        const margin = 10;
+
+        const fullscreenButton = this.add.rectangle(
+            CONSTANTS.GAME.WIDTH - margin - buttonSize / 2,
+            margin + buttonSize / 2,
+            buttonSize,
+            buttonSize,
+            0x333333,
+            0.8
+        );
+        fullscreenButton.setInteractive({ useHandCursor: true });
+        fullscreenButton.setScrollFactor(0);
+        fullscreenButton.setDepth(1000);
+
+        // 아이콘 텍스트 (전체화면 모드에 따라 변경)
+        const iconText = this.add.text(
+            CONSTANTS.GAME.WIDTH - margin - buttonSize / 2,
+            margin + buttonSize / 2,
+            this.scale.isFullscreen ? '⊡' : '⊞',
+            {
+                fontSize: '24px',
+                fill: '#fff',
+                fontStyle: 'bold'
+            }
+        );
+        iconText.setOrigin(0.5);
+        iconText.setScrollFactor(0);
+        iconText.setDepth(1001);
+
+        // 호버 효과
+        fullscreenButton.on('pointerover', () => {
+            fullscreenButton.setFillStyle(0x555555, 0.9);
+            iconText.setScale(1.1);
+        });
+
+        fullscreenButton.on('pointerout', () => {
+            fullscreenButton.setFillStyle(0x333333, 0.8);
+            iconText.setScale(1);
+        });
+
+        // 클릭 이벤트 - 전체화면 토글
+        fullscreenButton.on('pointerdown', () => {
+            if (this.scale.isFullscreen) {
+                this.scale.stopFullscreen();
+            } else {
+                this.scale.startFullscreen();
+            }
+        });
+
+        // 전체화면 상태 변경 감지
+        this.scale.on('fullscreenchange', () => {
+            iconText.setText(this.scale.isFullscreen ? '⊡' : '⊞');
+        });
+
+        return { fullscreenButton, iconText };
     }
 }
 

@@ -1,0 +1,837 @@
+// Stage 1: 슬라임 숲
+class Stage1Scene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'Stage1Scene' });
+    }
+
+    preload() {
+        // 플레이어 스프라이트시트 로드
+        this.load.spritesheet('player_idle', 'assets/player/Idle (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet('player_run', 'assets/player/Run (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet('player_jump', 'assets/player/Jump (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet('player_fall', 'assets/player/Fall (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet('player_double_jump', 'assets/player/Double Jump (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+        this.load.spritesheet('player_hit', 'assets/player/Hit (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        // 슬라임 스프라이트시트 로드
+        this.load.spritesheet('slime_idle', 'assets/Slime/Idle-Run (44x30).png', {
+            frameWidth: 44,
+            frameHeight: 30
+        });
+        this.load.spritesheet('slime_hit', 'assets/Slime/Hit (44x30).png', {
+            frameWidth: 44,
+            frameHeight: 30
+        });
+
+        // 플랫폼 이미지 로드
+        this.load.image('platform_brown', 'assets/Platforms/Brown Off.png');
+        this.load.spritesheet('platform_brown_on', 'assets/Platforms/Brown On (32x8).png', {
+            frameWidth: 32,
+            frameHeight: 8
+        });
+
+        // Menu UI 로드
+        this.load.image('btn_restart', 'assets/Menu ui/Buttons/Restart.png');
+        this.load.image('btn_close', 'assets/Menu ui/Buttons/Close.png');
+        this.load.image('btn_back', 'assets/Menu ui/Buttons/Back.png');
+    }
+
+    create() {
+        try {
+            // 페이드 인 효과
+            this.cameras.main.fadeIn(800, 0, 0, 0);
+
+            // 배경색 (초록 숲)
+            this.cameras.main.setBackgroundColor(0x7CB342);
+
+            // 플레이어 애니메이션 생성
+            this.createPlayerAnimations();
+
+            // 슬라임 애니메이션 생성
+            this.createSlimeAnimations();
+
+            // 전역 변수 초기화
+            window.player = null;
+            window.abilityOrbs = [];
+            window.items = [];
+
+            // 로컬 변수
+            this.platforms = null;
+            this.groundGroup = null;
+            this.enemies = null;
+            this.enemyList = [];
+            this.boss = null;
+            this.bossSpawned = false;
+            this.bossSpawning = false; // 보스 소환 진행 중 플래그
+
+            // 스테이지 정보
+            this.stageNumber = 1;
+            this.stageName = 'Stage 1: 슬라임 숲';
+
+            // 키보드 입력
+            this.cursors = null;
+            this.keys = null;
+
+            // UI
+            this.healthText = null;
+            this.abilityText = null;
+            this.cooldownText = null;
+            this.passiveItemsText = null;
+            this.stageText = null;
+
+            // 콤보 시스템
+            this.comboSystem = null;
+
+            // 미니맵 시스템
+            this.minimapSystem = null;
+
+            // 월드 크기 설정
+            this.physics.world.setBounds(0, 0, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
+
+            // 플랫폼 그룹 생성
+            this.platforms = this.physics.add.staticGroup();
+            this.groundGroup = this.physics.add.staticGroup();
+
+            // 바닥 생성
+            this.createGround();
+
+            // 플랫폼 생성 (Stage 1 레이아웃)
+            this.createPlatforms();
+
+            // 플레이어 생성
+            window.player = new Player(this, 100, 400);
+
+            // 시작 능력 장착
+            const swordAbility = new SwordAbility(this);
+            const magicAbility = new MagicAbility(this);
+            window.player.equipAbility(swordAbility, 0);
+            window.player.equipAbility(magicAbility, 1);
+
+            // 카메라 설정
+            this.setupCamera();
+
+            // 적 생성 (슬라임 중심)
+            this.enemies = this.physics.add.group();
+            this.createEnemies();
+
+            // 충돌 설정
+            this.setupCollisions();
+
+            // 키보드 입력 설정
+            this.cursors = this.input.keyboard.createCursorKeys();
+            this.keys = {
+                dash: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
+                basicAttack: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z),
+                strongAttack: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X),
+                specialSkill: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C),
+                abilitySwap1: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+                abilitySwap2: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
+            };
+
+            // ESC 키로 일시정지
+            this.input.keyboard.on('keydown-ESC', () => {
+                this.pauseGame();
+            });
+
+            // UI 생성
+            this.createUI();
+
+            // 콤보 시스템 초기화
+            this.comboSystem = new ComboSystem(this);
+
+            // 미니맵 시스템 초기화
+            this.minimapSystem = new MinimapSystem(this, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
+
+            // 이벤트 리스너
+            this.events.on('playerDied', this.handlePlayerDeath, this);
+
+            // 현재 씬을 레지스트리에 저장 (일시정지 시 사용)
+            this.registry.set('activeScene', 'Stage1Scene');
+
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log('Stage 1 로드 완료');
+            }
+
+        } catch (error) {
+            console.error('Stage1Scene create 오류:', error);
+        }
+    }
+
+    createPlayerAnimations() {
+        // Idle 애니메이션 (11 프레임)
+        this.anims.create({
+            key: 'player_idle',
+            frames: this.anims.generateFrameNumbers('player_idle', { start: 0, end: 10 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Run 애니메이션 (12 프레임)
+        this.anims.create({
+            key: 'player_run',
+            frames: this.anims.generateFrameNumbers('player_run', { start: 0, end: 11 }),
+            frameRate: 12,
+            repeat: -1
+        });
+
+        // Jump 애니메이션
+        this.anims.create({
+            key: 'player_jump',
+            frames: this.anims.generateFrameNumbers('player_jump', { start: 0, end: 0 }),
+            frameRate: 1
+        });
+
+        // Fall 애니메이션
+        this.anims.create({
+            key: 'player_fall',
+            frames: this.anims.generateFrameNumbers('player_fall', { start: 0, end: 0 }),
+            frameRate: 1
+        });
+
+        // Double Jump 애니메이션
+        this.anims.create({
+            key: 'player_double_jump',
+            frames: this.anims.generateFrameNumbers('player_double_jump', { start: 0, end: 5 }),
+            frameRate: 12
+        });
+
+        // Hit 애니메이션
+        this.anims.create({
+            key: 'player_hit',
+            frames: this.anims.generateFrameNumbers('player_hit', { start: 0, end: 6 }),
+            frameRate: 12
+        });
+    }
+
+    createSlimeAnimations() {
+        // Idle/Run 애니메이션 (10 프레임)
+        this.anims.create({
+            key: 'slime_idle',
+            frames: this.anims.generateFrameNumbers('slime_idle', { start: 0, end: 9 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        // Hit 애니메이션
+        this.anims.create({
+            key: 'slime_hit',
+            frames: this.anims.generateFrameNumbers('slime_hit', { start: 0, end: 4 }),
+            frameRate: 12
+        });
+    }
+
+    createGround() {
+        const tileWidth = 32;
+        const tileHeight = 8;
+        const groundY = CONSTANTS.WORLD.HEIGHT - tileHeight/2;
+
+        // 타일 기반 바닥 생성
+        for (let x = 0; x < CONSTANTS.WORLD.WIDTH; x += tileWidth) {
+            const ground = this.add.tileSprite(
+                x + tileWidth / 2,
+                groundY,
+                tileWidth,
+                tileHeight,
+                'platform_brown'
+            );
+            ground.setScale(1, 5); // 세로 크기 확대
+            this.physics.add.existing(ground, true);
+            this.groundGroup.add(ground);
+        }
+
+        this.groundGroup.refresh();
+    }
+
+    createPlatforms() {
+        const tileWidth = 32;
+        const tileHeight = 8;
+
+        const platformData = [
+            // 시작 구간
+            { x: 200, y: 450, tiles: 5 },  // 150px → 5 타일
+            { x: 400, y: 350, tiles: 4 },  // 120px → 4 타일
+            { x: 600, y: 450, tiles: 5 },
+
+            // 슬라임 구간 1
+            { x: 900, y: 400, tiles: 6 },   // 200px → 6 타일
+            { x: 1100, y: 300, tiles: 5 },
+            { x: 1300, y: 450, tiles: 4 },
+
+            // 슬라임 구간 2
+            { x: 1600, y: 350, tiles: 6 },  // 180px → 6 타일
+            { x: 1900, y: 500, tiles: 5 },
+            { x: 2100, y: 400, tiles: 5 },
+
+            // 보스 전 구간
+            { x: 2400, y: 300, tiles: 3 },  // 100px → 3 타일
+            { x: 2600, y: 450, tiles: 5 },
+
+            // 보스 구역 (넓은 공간)
+            { x: 2900, y: 500, tiles: 8 }   // 250px → 8 타일
+        ];
+
+        platformData.forEach(data => {
+            const platformWidth = tileWidth * data.tiles;
+            const platform = this.add.tileSprite(
+                data.x,
+                data.y,
+                platformWidth,
+                tileHeight,
+                'platform_brown'
+            );
+            this.physics.add.existing(platform, true);
+            this.platforms.add(platform);
+        });
+
+        this.platforms.refresh();
+    }
+
+    createEnemies() {
+        // 슬라임 배치 (6마리)
+        const slimePositions = [
+            { x: 500, y: 300 },
+            { x: 1000, y: 350 },
+            { x: 1200, y: 250 },
+            { x: 1500, y: 300 },
+            { x: 2000, y: 350 },
+            { x: 2500, y: 400 }
+        ];
+
+        slimePositions.forEach(pos => {
+            const slime = new Slime(this, pos.x, pos.y);
+            this.enemyList.push(slime);
+            this.enemies.add(slime.sprite);
+        });
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('Stage 1 적 생성 완료: 슬라임', slimePositions.length, '마리');
+        }
+    }
+
+    setupCamera() {
+        this.cameras.main.setBounds(0, 0, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
+        this.cameras.main.startFollow(window.player.sprite, true, 0.1, 0.1);
+        this.cameras.main.setZoom(1);
+    }
+
+    setupCollisions() {
+        // 플레이어와 플랫폼
+        this.physics.add.collider(window.player.sprite, this.platforms);
+        this.physics.add.collider(window.player.sprite, this.groundGroup);
+
+        // 적과 플랫폼
+        this.physics.add.collider(this.enemies, this.platforms);
+        this.physics.add.collider(this.enemies, this.groundGroup);
+
+        // 플레이어와 적 충돌
+        this.physics.add.overlap(
+            window.player.sprite,
+            this.enemies,
+            this.handlePlayerEnemyCollision,
+            null,
+            this
+        );
+    }
+
+    handlePlayerEnemyCollision(playerSprite, enemySprite) {
+        const enemyEntity = enemySprite.getData('entity');
+        const damage = enemySprite.getData('damage');
+
+        if (enemyEntity && enemyEntity.isAlive && window.player && window.player.isAlive) {
+            window.player.takeDamage(damage);
+        }
+    }
+
+    handleAttackEnemyCollision(attackObj, enemySprite) {
+        const enemyEntity = enemySprite.getData('entity');
+        const damage = attackObj.getData('damage');
+
+        if (enemyEntity && enemyEntity.isAlive && !enemyEntity.isHit) {
+            // 콤보 시스템에 히트 추가
+            const comboMultiplier = this.comboSystem ? this.comboSystem.addHit() : 1.0;
+
+            // 콤보 배율 적용 데미지
+            const finalDamage = Math.floor(damage * comboMultiplier);
+
+            enemyEntity.takeDamage(finalDamage);
+
+            // 콤보 파티클 효과
+            if (this.comboSystem && this.comboSystem.getComboCount() >= 3) {
+                this.createComboParticles(enemySprite.x, enemySprite.y, this.comboSystem.getComboCount());
+            }
+
+            if (attackObj && attackObj.active) {
+                attackObj.destroy();
+            }
+        }
+    }
+
+    createComboParticles(x, y, comboCount) {
+        // 콤보 수에 따라 파티클 개수 증가
+        const particleCount = Math.min(comboCount, 15);
+
+        for (let i = 0; i < particleCount; i++) {
+            this.time.delayedCall(i * 20, () => {
+                const angle = (Math.PI * 2 * i) / particleCount;
+                const speed = 100 + (comboCount * 10);
+
+                const particle = this.add.circle(
+                    x,
+                    y,
+                    4 + Math.random() * 4,
+                    comboCount >= 10 ? 0xff00ff : (comboCount >= 5 ? 0xff0000 : 0xffff00),
+                    1
+                );
+
+                this.physics.add.existing(particle);
+                particle.body.setAllowGravity(false);
+                particle.body.setVelocity(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                );
+
+                this.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    scale: 0,
+                    duration: 500,
+                    onComplete: () => {
+                        particle.destroy();
+                    }
+                });
+            });
+        }
+    }
+
+    handleAbilityOrbCollision(playerSprite, orb) {
+        if (!orb || !orb.active) return;
+
+        const abilityType = orb.getData('abilityType');
+
+        // 중복 체크: 이미 같은 타입의 능력이 있는지 확인
+        const hasSameAbility = window.player.abilities.some(ability => {
+            if (!ability) return false;
+            // 능력 타입 비교 (클래스 이름 기반)
+            const abilityName = ability.constructor.name.toLowerCase();
+            return abilityName.includes(abilityType);
+        });
+
+        if (hasSameAbility) {
+            // 이미 같은 능력이 있으면 무시
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log('이미 같은 능력이 있습니다:', abilityType);
+            }
+            orb.destroy();
+            window.abilityOrbs = window.abilityOrbs.filter(o => o !== orb);
+            return;
+        }
+
+        let newAbility = null;
+
+        switch (abilityType) {
+            case 'sword':
+                newAbility = new SwordAbility(this);
+                break;
+            case 'magic':
+                newAbility = new MagicAbility(this);
+                break;
+            case 'hammer':
+                newAbility = new HammerAbility(this);
+                break;
+            case 'bow':
+                newAbility = new BowAbility(this);
+                break;
+        }
+
+        if (newAbility) {
+            const emptySlot = window.player.abilities.findIndex(a => a === null);
+
+            if (emptySlot !== -1) {
+                window.player.equipAbility(newAbility, emptySlot);
+            } else {
+                const oldAbility = window.player.getCurrentAbility();
+                if (oldAbility) {
+                    oldAbility.destroy();
+                }
+                window.player.equipAbility(newAbility, window.player.currentAbilityIndex);
+            }
+
+            orb.destroy();
+            window.abilityOrbs = window.abilityOrbs.filter(o => o !== orb);
+        }
+    }
+
+    createUI() {
+        // 스테이지 이름
+        this.stageText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            16,
+            this.stageName,
+            {
+                fontSize: '20px',
+                fill: '#fff',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 4
+            }
+        );
+        this.stageText.setOrigin(0.5, 0);
+        this.stageText.setScrollFactor(0);
+
+        // 체력 표시
+        this.healthText = this.add.text(16, 50, '', {
+            fontSize: '20px',
+            fill: '#fff',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        });
+        this.healthText.setScrollFactor(0);
+
+        // 능력 표시
+        this.abilityText = this.add.text(16, 84, '', {
+            fontSize: '16px',
+            fill: '#fff',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        });
+        this.abilityText.setScrollFactor(0);
+
+        // 쿨타임 표시
+        this.cooldownText = this.add.text(16, 114, '', {
+            fontSize: '14px',
+            fill: '#ffff00',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        });
+        this.cooldownText.setScrollFactor(0);
+
+        // 패시브 아이템 표시
+        this.passiveItemsText = this.add.text(16, 144, '', {
+            fontSize: '14px',
+            fill: '#fff',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        });
+        this.passiveItemsText.setScrollFactor(0);
+
+        // 조작법 (간략화)
+        const controlsText = this.add.text(
+            CONSTANTS.GAME.WIDTH - 16,
+            16,
+            '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격 | Q/E 능력교체',
+            {
+                fontSize: '12px',
+                fill: '#fff',
+                backgroundColor: '#000',
+                padding: { x: 8, y: 4 },
+                align: 'right'
+            }
+        );
+        controlsText.setOrigin(1, 0);
+        controlsText.setScrollFactor(0);
+    }
+
+    updateUI() {
+        if (window.player && this.healthText) {
+            const hearts = Math.ceil(window.player.hp / 10);
+            this.healthText.setText(`HP: ${'❤'.repeat(hearts)} (${window.player.hp}/${window.player.maxHp})`);
+        }
+
+        if (window.player && this.abilityText) {
+            const ability1 = window.player.abilities[0];
+            const ability2 = window.player.abilities[1];
+            const current = window.player.currentAbilityIndex;
+
+            const name1 = ability1 ? ability1.name : '없음';
+            const name2 = ability2 ? ability2.name : '없음';
+
+            const marker1 = current === 0 ? '→' : ' ';
+            const marker2 = current === 1 ? '→' : ' ';
+
+            this.abilityText.setText(`능력: ${marker1}[1] ${name1}  ${marker2}[2] ${name2}`);
+        }
+
+        if (window.player && this.cooldownText) {
+            const ability = window.player.getCurrentAbility();
+            if (ability) {
+                const basicReady = ability.canUseBasicAttack() ? '●' : '○';
+                const strongReady = ability.canUseStrongAttack() ? '●' : '○';
+                const skillReady = ability.canUseSkill() ? '●' : '○';
+
+                this.cooldownText.setText(`공격: ${basicReady} | 강공격: ${strongReady} | 스킬: ${skillReady}`);
+            } else {
+                this.cooldownText.setText('');
+            }
+        }
+
+        if (window.player && this.passiveItemsText) {
+            if (window.player.passiveItems.length > 0) {
+                const itemIcons = window.player.passiveItems.map(item => item.icon).join(' ');
+                this.passiveItemsText.setText(`패시브: ${itemIcons}`);
+            } else {
+                this.passiveItemsText.setText('');
+            }
+        }
+    }
+
+    handlePlayerDeath() {
+        console.log('플레이어 사망!');
+
+        // 페이드 아웃 효과
+        this.cameras.main.fadeOut(500, 0, 0, 0);
+
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.scene.start('GameOverScene');
+        });
+    }
+
+    checkBossSpawn() {
+        // 보스가 이미 존재하면 체크 안 함
+        if (this.bossSpawned) return;
+
+        // 모든 일반 적을 처치하면 보스 등장
+        const aliveEnemies = this.enemyList.filter(e => e.isAlive && !e.isBoss);
+
+        if (CONSTANTS.GAME.DEBUG) {
+            // 적이 죽을 때마다 로그 출력
+            if (aliveEnemies.length <= 3 && aliveEnemies.length > 0) {
+                console.log('남은 일반 적:', aliveEnemies.length, 'bossSpawned:', this.bossSpawned);
+            }
+        }
+
+        if (aliveEnemies.length === 0 && !this.bossSpawned) {
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log('보스 소환 조건 만족! 일반 적 처치 완료');
+            }
+            // 즉시 플래그 설정하여 중복 방지
+            this.bossSpawned = true;
+            this.spawnBoss();
+        }
+    }
+
+    spawnBoss() {
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('spawnBoss() 호출됨');
+        }
+
+        // 보스 등장 알림
+        const bossText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            CONSTANTS.GAME.HEIGHT / 2,
+            '⚠️ 보스 등장! ⚠️\nSLIME KING',
+            {
+                fontSize: '48px',
+                fill: '#ff0000',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 6,
+                align: 'center'
+            }
+        );
+        bossText.setOrigin(0.5);
+        bossText.setScrollFactor(0);
+        bossText.setDepth(1000);
+
+        // 보스 텍스트 애니메이션
+        this.tweens.add({
+            targets: bossText,
+            scale: 1.2,
+            alpha: 0,
+            duration: 2000,
+            onComplete: () => {
+                try {
+                    bossText.destroy();
+
+                    if (CONSTANTS.GAME.DEBUG) {
+                        console.log('보스 텍스트 제거 완료, 보스 객체 생성 시작...');
+                    }
+
+                    // 보스 생성 (보스 구역: x=2900 근처)
+                    this.boss = new SlimeBoss(this, 2900, 400);
+
+                    if (CONSTANTS.GAME.DEBUG) {
+                        console.log('SlimeBoss 객체 생성 성공');
+                        console.log('보스 sprite:', this.boss.sprite);
+                        console.log('보스 sprite.body:', this.boss.sprite ? this.boss.sprite.body : null);
+                        console.log('보스 isAlive:', this.boss.isAlive);
+                        console.log('보스 isBoss:', this.boss.isBoss);
+                    }
+
+                    this.enemyList.push(this.boss);
+                    this.enemies.add(this.boss.sprite);
+
+                    // 보스 처치 이벤트 리스너
+                    this.events.on('bossDefeated', this.handleBossDefeated, this);
+
+                    if (CONSTANTS.GAME.DEBUG) {
+                        console.log('슬라임 킹 생성 완료! enemyList 크기:', this.enemyList.length);
+                    }
+                } catch (error) {
+                    console.error('보스 생성 중 오류 발생:', error);
+                    console.error('에러 스택:', error.stack);
+                    // 에러 발생 시 플래그 리셋
+                    this.bossSpawned = false;
+                }
+            }
+        });
+    }
+
+    handleBossDefeated(stageNumber) {
+        console.log('Stage', stageNumber, '보스 처치!');
+
+        // 스테이지 클리어
+        this.time.delayedCall(2000, () => {
+            this.handleStageClear();
+        });
+    }
+
+    handleStageClear() {
+        // 스테이지 클리어 시간 계산
+        const startTime = this.registry.get('stageStartTime');
+        const clearTime = Date.now() - startTime;
+
+        // 저장 데이터 업데이트
+        const saveData = window.saveManager.load();
+        window.saveManager.clearStage(this.stageNumber, clearTime, saveData);
+
+        // 클리어 시간 레지스트리에 저장
+        this.registry.set('clearTime', clearTime);
+
+        // 페이드 아웃 효과 후 씬 전환
+        this.cameras.main.fadeOut(800, 255, 255, 255);
+
+        this.cameras.main.once('camerafadeoutcomplete', () => {
+            this.scene.start('StageClearScene');
+        });
+    }
+
+    pauseGame() {
+        // 현재 씬을 레지스트리에 저장
+        this.registry.set('activeScene', 'Stage1Scene');
+
+        // 현재 씬 일시정지
+        this.scene.pause();
+
+        // 일시정지 씬 시작
+        this.scene.launch('PauseScene');
+    }
+
+    update() {
+        try {
+            if (!window.player) return;
+
+            // 플레이어 업데이트
+            window.player.update(this.cursors, this.keys);
+
+            // 적 업데이트
+            this.enemyList.forEach(enemy => {
+                if (enemy && enemy.isAlive) {
+                    enemy.update();
+                }
+            });
+
+            // 사망한 적 제거
+            this.enemyList = this.enemyList.filter(enemy => enemy.isAlive);
+
+            // 보스 스폰 체크
+            this.checkBossSpawn();
+
+            // 플레이어 공격과 적 충돌 체크
+            const ability = window.player.getCurrentAbility();
+            if (ability && ability.activeAttacks) {
+                ability.activeAttacks.forEach(attack => {
+                    if (attack && attack.active) {
+                        this.physics.overlap(
+                            attack,
+                            this.enemies,
+                            this.handleAttackEnemyCollision,
+                            null,
+                            this
+                        );
+                    }
+                });
+            }
+
+            // 능력 오브 충돌 체크
+            window.abilityOrbs.forEach(orb => {
+                if (orb && orb.active && window.player && window.player.sprite) {
+                    this.physics.overlap(
+                        window.player.sprite,
+                        orb,
+                        this.handleAbilityOrbCollision,
+                        null,
+                        this
+                    );
+                }
+            });
+
+            window.abilityOrbs = window.abilityOrbs.filter(orb => orb && orb.active);
+
+            // 아이템 업데이트 및 충돌 체크
+            window.items.forEach(item => {
+                if (item && item.isActive) {
+                    item.update();
+
+                    // 아이템과 바닥/플랫폼 충돌 설정 (땅 밑으로 떨어지지 않도록)
+                    if (item.sprite && item.sprite.body) {
+                        this.physics.collide(item.sprite, this.platforms);
+                        this.physics.collide(item.sprite, this.groundGroup);
+                    }
+
+                    if (window.player && window.player.sprite) {
+                        this.physics.overlap(
+                            window.player.sprite,
+                            item.sprite,
+                            () => {
+                                item.onPickup(window.player);
+                            },
+                            null,
+                            this
+                        );
+                    }
+                }
+            });
+
+            window.items = window.items.filter(item => item && item.isActive);
+
+            // UI 업데이트
+            this.updateUI();
+
+            // 콤보 시스템 업데이트
+            if (this.comboSystem) {
+                this.comboSystem.update();
+            }
+
+            // 미니맵 업데이트
+            if (this.minimapSystem) {
+                this.minimapSystem.update(window.player, this.enemyList);
+            }
+
+        } catch (error) {
+            console.error('Stage1Scene update 오류:', error);
+        }
+    }
+}
+
+// 전역에서 접근 가능하도록
+if (typeof window !== 'undefined') {
+    window.Stage1Scene = Stage1Scene;
+}

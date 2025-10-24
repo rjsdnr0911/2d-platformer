@@ -81,17 +81,76 @@ class Enemy {
         const knockbackDirection = this.direction * -1;
         this.sprite.body.setVelocityX(100 * knockbackDirection);
         this.sprite.body.setVelocityY(-50);
+
+        // 피격 파티클 (피 튀는 효과)
+        for (let i = 0; i < 3; i++) {
+            this.scene.time.delayedCall(i * 30, () => {
+                if (!this.sprite || !this.sprite.active) return;
+
+                const particle = this.scene.add.circle(
+                    this.sprite.x + (Math.random() - 0.5) * this.config.WIDTH,
+                    this.sprite.y + (Math.random() - 0.5) * this.config.HEIGHT,
+                    Math.random() * 4 + 2,
+                    0xFF0000,
+                    0.8
+                );
+
+                this.scene.physics.add.existing(particle);
+                particle.body.setVelocity(
+                    (Math.random() - 0.5) * 100,
+                    -Math.random() * 100
+                );
+
+                this.scene.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    duration: 400,
+                    onComplete: () => {
+                        particle.destroy();
+                    }
+                });
+            });
+        }
     }
 
     // 사망
     die() {
         this.isAlive = false;
 
+        // 사망 폭발 효과
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const particle = this.scene.add.circle(
+                this.sprite.x,
+                this.sprite.y,
+                Math.random() * 5 + 3,
+                this.config.COLOR,
+                0.8
+            );
+
+            this.scene.physics.add.existing(particle);
+            particle.body.setVelocity(
+                Math.cos(angle) * 150,
+                Math.sin(angle) * 150
+            );
+
+            this.scene.tweens.add({
+                targets: particle,
+                alpha: 0,
+                scale: 0.5,
+                duration: 500,
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
+        }
+
         // 사망 애니메이션
         this.scene.tweens.add({
             targets: this.sprite,
             alpha: 0,
             y: this.sprite.y + 20,
+            angle: 360,
             duration: 300,
             onComplete: () => {
                 // 아이템 드롭
@@ -154,6 +213,7 @@ class Enemy {
     updateAI() {
         // 기본 AI: 좌우 순찰
         if (!this.isAlive || this.isHit) return;
+        if (!this.sprite || !this.sprite.body) return;
 
         // 이동 범위 체크
         const distanceFromStart = this.sprite.x - this.startX;
@@ -169,11 +229,13 @@ class Enemy {
     // 업데이트
     update() {
         if (!this.sprite || !this.sprite.active) return;
+        if (!this.isAlive) return;
 
         try {
             this.updateAI();
         } catch (error) {
             console.error('Enemy update 오류:', error);
+            console.error('Error details:', error.stack);
         }
     }
 

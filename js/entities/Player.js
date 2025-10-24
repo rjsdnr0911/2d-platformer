@@ -8,16 +8,17 @@ class Player {
             return;
         }
 
-        // 플레이어 스프라이트 생성 (사각형으로 시작)
-        this.sprite = scene.add.rectangle(
-            x, y,
-            CONSTANTS.PLAYER.WIDTH,
-            CONSTANTS.PLAYER.HEIGHT,
-            CONSTANTS.COLORS.PLAYER
-        );
+        // 플레이어 스프라이트 생성
+        this.sprite = scene.add.sprite(x, y, 'player_idle');
+        this.sprite.play('player_idle');
+        this.sprite.setScale(1.3); // 캐릭터 크기 약간 증가
 
         // 물리 바디 추가
         scene.physics.add.existing(this.sprite);
+
+        // 히트박스 조정 (32x32 스프라이트 기준)
+        this.sprite.body.setSize(20, 30);
+        this.sprite.body.setOffset(6, 2);
 
         // 물리 속성 설정
         this.sprite.body.setBounce(CONSTANTS.PLAYER.BOUNCE);
@@ -41,18 +42,18 @@ class Player {
         this.dashTimer = null;
 
         // 점프 관련
-        this.jumpCount = 0; // 현재 점프 횟수
-        this.maxJumps = CONSTANTS.PLAYER.MAX_JUMPS; // 최대 점프 횟수
+        this.jumpCount = 0;
+        this.maxJumps = CONSTANTS.PLAYER.MAX_JUMPS;
 
         // 능력 시스템
-        this.abilities = [null, null]; // [슬롯A, 슬롯B]
+        this.abilities = [null, null];
         this.currentAbilityIndex = 0;
 
         // 공격 상태
         this.isAttacking = false;
         this.lastAttackTime = 0;
 
-        // 패시브 아이템 시스템 (최대 3개)
+        // 패시브 아이템 시스템
         this.passiveItems = [];
         this.maxPassiveItems = 3;
 
@@ -64,12 +65,11 @@ class Player {
         this.dashCooldownReduction = 0;
         this.invincibilityBonus = 0;
 
-        // 플레이어 데이터 저장 (접근용)
+        // 플레이어 데이터 저장
         this.sprite.setData('entity', this);
         this.sprite.setData('type', 'player');
     }
 
-    // 능력 장착
     equipAbility(ability, slotIndex) {
         if (!ability || slotIndex < 0 || slotIndex > 1) {
             console.error('Player: 잘못된 능력 장착');
@@ -85,12 +85,10 @@ class Player {
         return true;
     }
 
-    // 현재 능력 가져오기
     getCurrentAbility() {
         return this.abilities[this.currentAbilityIndex];
     }
 
-    // 능력 교체
     swapAbility() {
         const oldIndex = this.currentAbilityIndex;
         this.currentAbilityIndex = (this.currentAbilityIndex + 1) % 2;
@@ -98,7 +96,6 @@ class Player {
         const newAbility = this.getCurrentAbility();
 
         if (newAbility) {
-            // 스왑 특수 효과 발동
             newAbility.onSwapIn();
 
             if (CONSTANTS.GAME.DEBUG) {
@@ -107,7 +104,6 @@ class Player {
         }
     }
 
-    // 이동
     move(direction) {
         if (!this.isAlive || this.isDashing) return;
 
@@ -117,35 +113,29 @@ class Player {
         // 방향 업데이트
         if (direction > 0) {
             this.facingRight = true;
+            this.sprite.setFlipX(false);
         } else if (direction < 0) {
             this.facingRight = false;
+            this.sprite.setFlipX(true);
         }
     }
 
-    // 점프 (더블 점프 지원)
     jump() {
         if (!this.isAlive || this.isDashing) return;
 
-        // 바닥에 닿아있으면 점프 카운트 리셋
         if (this.sprite.body.touching.down) {
             this.jumpCount = 0;
         }
 
-        // 최대 점프 횟수 체크
         if (this.jumpCount >= this.maxJumps) {
             return;
         }
 
-        // 점프 실행
         let jumpPower;
         if (this.jumpCount === 0) {
-            // 첫 번째 점프 (지상 점프)
             jumpPower = CONSTANTS.PLAYER.JUMP_VELOCITY * (1 + this.jumpBonus);
         } else {
-            // 두 번째 점프 (공중 점프 - 더블 점프)
             jumpPower = CONSTANTS.PLAYER.DOUBLE_JUMP_VELOCITY * (1 + this.jumpBonus);
-
-            // 더블 점프 이펙트
             this.playDoubleJumpEffect();
         }
 
@@ -157,12 +147,10 @@ class Player {
         }
     }
 
-    // 더블 점프 이펙트
     playDoubleJumpEffect() {
-        // 발 아래에 작은 구름 효과
         const cloud = this.scene.add.circle(
             this.sprite.x,
-            this.sprite.y + CONSTANTS.PLAYER.HEIGHT / 2,
+            this.sprite.y + 15,
             15,
             0xFFFFFF,
             0.6
@@ -177,24 +165,13 @@ class Player {
                 cloud.destroy();
             }
         });
-
-        // 플레이어 짧은 회전 효과
-        const originalAngle = this.sprite.angle;
-        this.scene.tweens.add({
-            targets: this.sprite,
-            angle: originalAngle + 360,
-            duration: 400,
-            ease: 'Cubic.easeOut'
-        });
     }
 
-    // 대시
     dash() {
         if (!this.isAlive || this.isDashing) return;
 
         const currentTime = this.scene.time.now;
 
-        // 쿨타임 체크 (쿨타임 감소 적용)
         const dashCooldown = CONSTANTS.PLAYER.DASH_COOLDOWN * (1 - this.dashCooldownReduction);
         if (currentTime - this.lastDashTime < dashCooldown) {
             return;
@@ -204,14 +181,13 @@ class Player {
         this.isInvincible = true;
         this.lastDashTime = currentTime;
 
-        // 대시 방향 (현재 바라보는 방향)
         const dashDirection = this.facingRight ? 1 : -1;
         this.sprite.body.setVelocityX(CONSTANTS.PLAYER.DASH_VELOCITY * dashDirection);
 
-        // 대시 시각 효과 (투명도)
         this.sprite.setAlpha(0.5);
 
-        // 대시 종료 타이머
+        this.createDashTrail();
+
         this.dashTimer = this.scene.time.delayedCall(
             CONSTANTS.PLAYER.DASH_DURATION,
             () => {
@@ -222,7 +198,35 @@ class Player {
         );
     }
 
-    // 기본 공격
+    createDashTrail() {
+        const trailCount = 5;
+        const trailInterval = CONSTANTS.PLAYER.DASH_DURATION / trailCount;
+
+        for (let i = 0; i < trailCount; i++) {
+            this.scene.time.delayedCall(i * trailInterval, () => {
+                if (!this.sprite || !this.sprite.active) return;
+
+                const trail = this.scene.add.sprite(
+                    this.sprite.x,
+                    this.sprite.y,
+                    this.sprite.texture.key
+                );
+                trail.setFrame(this.sprite.frame.name);
+                trail.setFlipX(this.sprite.flipX);
+                trail.setAlpha(0.3);
+
+                this.scene.tweens.add({
+                    targets: trail,
+                    alpha: 0,
+                    duration: 200,
+                    onComplete: () => {
+                        trail.destroy();
+                    }
+                });
+            });
+        }
+    }
+
     basicAttack() {
         if (!this.isAlive || this.isAttacking || this.isDashing) return;
 
@@ -232,7 +236,6 @@ class Player {
         }
     }
 
-    // 강공격
     strongAttack() {
         if (!this.isAlive || this.isAttacking || this.isDashing) return;
 
@@ -242,7 +245,6 @@ class Player {
         }
     }
 
-    // 특수 스킬
     specialSkill() {
         if (!this.isAlive || this.isAttacking || this.isDashing) return;
 
@@ -252,11 +254,9 @@ class Player {
         }
     }
 
-    // 피격
     takeDamage(damage) {
         if (!this.isAlive || this.isInvincible) return;
 
-        // 데미지 감소 적용
         const actualDamage = Math.ceil(damage * (1 - this.damageReduction));
         this.hp -= actualDamage;
 
@@ -264,10 +264,7 @@ class Player {
             this.hp = 0;
             this.die();
         } else {
-            // 무적 시간 부여
             this.startInvincibility();
-
-            // 피격 효과
             this.playHitEffect();
         }
 
@@ -276,14 +273,11 @@ class Player {
         }
     }
 
-    // 무적 시간 시작
     startInvincibility() {
         this.isInvincible = true;
 
-        // 무적 시간 보너스 적용
         const invincibleTime = CONSTANTS.PLAYER.INVINCIBLE_TIME * (1 + this.invincibilityBonus);
 
-        // 깜빡임 효과
         this.scene.tweens.add({
             targets: this.sprite,
             alpha: 0.3,
@@ -292,34 +286,63 @@ class Player {
             repeat: invincibleTime / 200
         });
 
-        // 무적 종료
         this.scene.time.delayedCall(invincibleTime, () => {
             this.isInvincible = false;
             this.sprite.setAlpha(1);
         });
     }
 
-    // 피격 효과
     playHitEffect() {
-        // 색상 플래시
-        const originalColor = this.sprite.fillColor;
-        this.sprite.setFillStyle(CONSTANTS.COLORS.DAMAGE_FLASH);
-
-        this.scene.time.delayedCall(100, () => {
-            this.sprite.setFillStyle(originalColor);
-        });
+        // 피격 애니메이션 재생
+        this.sprite.play('player_hit');
 
         // 넉백
         const knockbackDirection = this.facingRight ? -1 : 1;
         this.sprite.body.setVelocityX(150 * knockbackDirection);
         this.sprite.body.setVelocityY(-100);
+
+        // 피격 파티클 효과 (별 모양)
+        for (let i = 0; i < 12; i++) {
+            this.scene.time.delayedCall(i * 20, () => {
+                if (!this.sprite || !this.sprite.active) return;
+
+                const angle = (Math.PI * 2 * i) / 12;
+                const speed = 120 + Math.random() * 60;
+
+                const particle = this.scene.add.star(
+                    this.sprite.x,
+                    this.sprite.y - 10,
+                    5,
+                    5,
+                    10,
+                    0xFFFF00,
+                    1
+                );
+
+                this.scene.physics.add.existing(particle);
+                particle.body.setAllowGravity(false);
+                particle.body.setVelocity(
+                    Math.cos(angle) * speed,
+                    Math.sin(angle) * speed
+                );
+
+                this.scene.tweens.add({
+                    targets: particle,
+                    alpha: 0,
+                    scale: 0.5,
+                    angle: 360,
+                    duration: 600,
+                    onComplete: () => {
+                        particle.destroy();
+                    }
+                });
+            });
+        }
     }
 
-    // 사망
     die() {
         this.isAlive = false;
 
-        // 사망 애니메이션
         this.scene.tweens.add({
             targets: this.sprite,
             alpha: 0,
@@ -327,7 +350,6 @@ class Player {
             y: this.sprite.y + 50,
             duration: 500,
             onComplete: () => {
-                // 게임 오버 처리
                 this.scene.events.emit('playerDied');
             }
         });
@@ -337,7 +359,6 @@ class Player {
         }
     }
 
-    // 체력 회복
     heal(amount) {
         this.hp = Math.min(this.hp + amount, this.maxHp);
 
@@ -346,9 +367,7 @@ class Player {
         }
     }
 
-    // 패시브 아이템 추가 (Skul 스타일)
     addPassiveItem(item) {
-        // 이미 같은 아이템을 가지고 있는지 확인
         const existingItem = this.passiveItems.find(i => i.id === item.id);
         if (existingItem) {
             if (CONSTANTS.GAME.DEBUG) {
@@ -357,16 +376,13 @@ class Player {
             return false;
         }
 
-        // 최대 개수 체크
         if (this.passiveItems.length >= this.maxPassiveItems) {
-            // 가장 오래된 아이템 제거
             const removedItem = this.passiveItems.shift();
             if (CONSTANTS.GAME.DEBUG) {
                 console.log('아이템 교체:', removedItem.name, '→', item.name);
             }
         }
 
-        // 아이템 추가 및 효과 적용
         this.passiveItems.push(item);
         if (item.effect) {
             item.effect();
@@ -380,15 +396,9 @@ class Player {
         return true;
     }
 
-    // 무적 부여 (무적 사탕용)
     grantInvincibility(duration) {
         this.isInvincible = true;
 
-        // 골드 색상으로 변경
-        const originalColor = this.sprite.fillColor;
-        this.sprite.setFillStyle(0xFFD700);
-
-        // 깜빡임 효과
         this.scene.tweens.add({
             targets: this.sprite,
             alpha: 0.8,
@@ -397,10 +407,8 @@ class Player {
             repeat: duration / 300
         });
 
-        // 무적 종료
         this.scene.time.delayedCall(duration, () => {
             this.isInvincible = false;
-            this.sprite.setFillStyle(originalColor);
             this.sprite.setAlpha(1);
         });
 
@@ -409,7 +417,36 @@ class Player {
         }
     }
 
-    // 업데이트
+    updateAnimation() {
+        if (!this.sprite || !this.sprite.body) return;
+
+        // 피격 중이면 애니메이션 변경 안 함
+        if (this.sprite.anims.currentAnim && this.sprite.anims.currentAnim.key === 'player_hit') {
+            if (this.sprite.anims.isPlaying) return;
+        }
+
+        const velocityY = this.sprite.body.velocity.y;
+        const velocityX = Math.abs(this.sprite.body.velocity.x);
+
+        if (!this.sprite.body.touching.down) {
+            // 공중
+            if (this.jumpCount > 1) {
+                this.sprite.play('player_double_jump', true);
+            } else if (velocityY < 0) {
+                this.sprite.play('player_jump', true);
+            } else {
+                this.sprite.play('player_fall', true);
+            }
+        } else {
+            // 지상
+            if (velocityX > 10) {
+                this.sprite.play('player_run', true);
+            } else {
+                this.sprite.play('player_idle', true);
+            }
+        }
+    }
+
     update(cursors, keys) {
         if (!this.isAlive) return;
 
@@ -426,7 +463,7 @@ class Player {
                 this.move(1);
             }
 
-            // 점프 (더블 점프)
+            // 점프
             if (Phaser.Input.Keyboard.JustDown(cursors.up)) {
                 this.jump();
             }
@@ -461,12 +498,14 @@ class Player {
                 ability.update();
             }
 
+            // 애니메이션 업데이트
+            this.updateAnimation();
+
         } catch (error) {
             console.error('Player update 오류:', error);
         }
     }
 
-    // 파괴
     destroy() {
         if (this.dashTimer) {
             this.dashTimer.remove();
