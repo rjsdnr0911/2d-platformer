@@ -29,6 +29,19 @@ class TouchControls {
             abilitySwap2: false
         };
 
+        // 각 버튼을 누르고 있는 포인터 ID 추적 (멀티터치 지원)
+        this.activePointers = {
+            left: null,
+            right: null,
+            jump: null,
+            basicAttack: null,
+            strongAttack: null,
+            skill: null,
+            dash: null,
+            abilitySwap1: null,
+            abilitySwap2: null
+        };
+
         // UI 요소들
         this.buttons = {};
         this.buttonTexts = {};
@@ -200,23 +213,33 @@ class TouchControls {
     }
 
     setupTouchEvents() {
-        // 모든 버튼에 대해 동일한 이벤트 처리
+        // 모든 버튼에 대해 멀티터치 지원 이벤트 처리
         Object.keys(this.buttons).forEach(key => {
             const button = this.buttons[key];
 
-            button.on('pointerdown', () => {
+            // 버튼 눌림 - 포인터 ID 저장
+            button.on('pointerdown', (pointer) => {
                 this.inputs[key] = true;
+                this.activePointers[key] = pointer.id;
                 button.setAlpha(0.9);
             });
 
-            button.on('pointerup', () => {
-                this.inputs[key] = false;
-                button.setAlpha(0.6);
+            // 버튼 떼어짐 - 해당 포인터 ID 확인 후 해제
+            button.on('pointerup', (pointer) => {
+                if (this.activePointers[key] === pointer.id) {
+                    this.inputs[key] = false;
+                    this.activePointers[key] = null;
+                    button.setAlpha(0.6);
+                }
             });
 
-            button.on('pointerout', () => {
-                this.inputs[key] = false;
-                button.setAlpha(0.6);
+            // 포인터가 버튼 밖으로 나감 - 해당 포인터 ID 확인 후 해제
+            button.on('pointerout', (pointer) => {
+                if (this.activePointers[key] === pointer.id) {
+                    this.inputs[key] = false;
+                    this.activePointers[key] = null;
+                    button.setAlpha(0.6);
+                }
             });
         });
     }

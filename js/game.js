@@ -14,6 +14,9 @@
             width: CONSTANTS.GAME.WIDTH,
             height: CONSTANTS.GAME.HEIGHT
         },
+        input: {
+            activePointers: 10  // 멀티터치 지원 (최대 10개 동시 터치)
+        },
         physics: {
             default: 'arcade',
             arcade: {
