@@ -99,6 +99,10 @@ class Stage2Scene extends Phaser.Scene {
             this.passiveItemsText = null;
             this.stageText = null;
 
+            // 터치 컨트롤 (모바일용)
+            this.touchControls = null;
+            this.isMobile = MobileDetector.isMobile();
+
             // 월드 크기 설정
             this.physics.world.setBounds(0, 0, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
 
@@ -144,6 +148,14 @@ class Stage2Scene extends Phaser.Scene {
 
             // UI 생성
             this.createUI();
+
+            // 터치 컨트롤 초기화 (모바일에서만)
+            if (this.isMobile) {
+                this.touchControls = new TouchControls(this);
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log('모바일 터치 컨트롤 활성화');
+                }
+            }
 
             // 이벤트 리스너
             this.events.on('playerDied', this.handlePlayerDeath, this);
@@ -676,8 +688,35 @@ class Stage2Scene extends Phaser.Scene {
         try {
             if (!window.player) return;
 
+            // 터치 입력과 키보드 입력 통합
+            let inputCursors = this.cursors;
+            let inputKeys = this.keys;
+
+            if (this.isMobile && this.touchControls) {
+                // 모바일: 터치 입력을 키보드 입력처럼 변환
+                const touchInputs = this.touchControls.getInputs();
+
+                // 커서 키 시뮬레이션
+                inputCursors = {
+                    left: { isDown: touchInputs.left },
+                    right: { isDown: touchInputs.right },
+                    up: { isDown: touchInputs.jump },
+                    down: { isDown: false }
+                };
+
+                // 액션 키 시뮬레이션
+                inputKeys = {
+                    dash: { isDown: touchInputs.dash },
+                    basicAttack: { isDown: touchInputs.attack },
+                    strongAttack: { isDown: false },
+                    specialSkill: { isDown: false },
+                    abilitySwap1: { isDown: false },
+                    abilitySwap2: { isDown: false }
+                };
+            }
+
             // 플레이어 업데이트
-            window.player.update(this.cursors, this.keys);
+            window.player.update(inputCursors, inputKeys);
 
             // 적 업데이트
             this.enemyList.forEach(enemy => {
