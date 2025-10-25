@@ -699,25 +699,49 @@ class Stage3Scene extends Phaser.Scene {
             let inputKeys = this.keys;
 
             if (this.isMobile && this.touchControls) {
-                // 모바일: 터치 입력을 키보드 입력처럼 변환
+                // 터치 입력 JustPressed 처리 (Player.update() 전에 먼저 처리)
+                if (this.touchControls.justPressed('jump')) {
+                    window.player.jump();
+                }
+                if (this.touchControls.justPressed('dash')) {
+                    window.player.dash();
+                }
+                if (this.touchControls.justPressed('basicAttack')) {
+                    window.player.basicAttack();
+                }
+                if (this.touchControls.justPressed('strongAttack')) {
+                    window.player.strongAttack();
+                }
+                if (this.touchControls.justPressed('skill')) {
+                    window.player.specialSkill();
+                }
+                if (this.touchControls.justPressed('abilitySwap1') ||
+                    this.touchControls.justPressed('abilitySwap2')) {
+                    window.player.swapAbility();
+                }
+
+                // 터치 컨트롤 업데이트 (다음 프레임을 위해 이전 상태 저장)
+                this.touchControls.update();
+
+                // 모바일: 터치 입력을 키보드 입력처럼 변환 (이동만 처리)
                 const touchInputs = this.touchControls.getInputs();
 
-                // 커서 키 시뮬레이션
+                // 커서 키 시뮬레이션 (이동만)
                 inputCursors = {
                     left: { isDown: touchInputs.left },
                     right: { isDown: touchInputs.right },
-                    up: { isDown: touchInputs.jump },
+                    up: { isDown: false }, // 점프는 위에서 직접 처리
                     down: { isDown: false }
                 };
 
-                // 액션 키 시뮬레이션
+                // 액션 키는 더미 (위에서 직접 처리했으므로)
                 inputKeys = {
-                    dash: { isDown: touchInputs.dash },
-                    basicAttack: { isDown: touchInputs.basicAttack },
-                    strongAttack: { isDown: touchInputs.strongAttack },
-                    specialSkill: { isDown: touchInputs.skill },
-                    abilitySwap1: { isDown: touchInputs.abilitySwap1 },
-                    abilitySwap2: { isDown: touchInputs.abilitySwap2 }
+                    dash: { isDown: false },
+                    basicAttack: { isDown: false },
+                    strongAttack: { isDown: false },
+                    specialSkill: { isDown: false },
+                    abilitySwap1: { isDown: false },
+                    abilitySwap2: { isDown: false }
                 };
             }
 

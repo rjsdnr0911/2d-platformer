@@ -16,6 +16,19 @@ class TouchControls {
             abilitySwap2: false
         };
 
+        // 이전 프레임 입력 상태 (JustDown 감지용)
+        this.previousInputs = {
+            left: false,
+            right: false,
+            jump: false,
+            basicAttack: false,
+            strongAttack: false,
+            skill: false,
+            dash: false,
+            abilitySwap1: false,
+            abilitySwap2: false
+        };
+
         // UI 요소들
         this.buttons = {};
         this.buttonTexts = {};
@@ -210,6 +223,19 @@ class TouchControls {
 
     getInputs() {
         return this.inputs;
+    }
+
+    // 매 프레임 호출하여 이전 입력 상태 업데이트
+    update() {
+        // 이전 프레임 상태를 현재 프레임으로 복사
+        Object.keys(this.inputs).forEach(key => {
+            this.previousInputs[key] = this.inputs[key];
+        });
+    }
+
+    // "방금 눌렸는지" 체크 (이전 프레임: false, 현재 프레임: true)
+    justPressed(key) {
+        return !this.previousInputs[key] && this.inputs[key];
     }
 
     destroy() {
