@@ -713,11 +713,11 @@ class Stage3Scene extends Phaser.Scene {
                 // 액션 키 시뮬레이션
                 inputKeys = {
                     dash: { isDown: touchInputs.dash },
-                    basicAttack: { isDown: touchInputs.attack },
-                    strongAttack: { isDown: false },
-                    specialSkill: { isDown: false },
-                    abilitySwap1: { isDown: false },
-                    abilitySwap2: { isDown: false }
+                    basicAttack: { isDown: touchInputs.basicAttack },
+                    strongAttack: { isDown: touchInputs.strongAttack },
+                    specialSkill: { isDown: touchInputs.skill },
+                    abilitySwap1: { isDown: touchInputs.abilitySwap1 },
+                    abilitySwap2: { isDown: touchInputs.abilitySwap2 }
                 };
             }
 
