@@ -65,7 +65,7 @@ class TouchControls {
             0x555555,
             buttonAlpha
         );
-        this.buttons.left.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.left.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.left = this.scene.add.text(
             this.buttons.left.x, this.buttons.left.y, '◀',
@@ -81,7 +81,7 @@ class TouchControls {
             0x555555,
             buttonAlpha
         );
-        this.buttons.right.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.right.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.right = this.scene.add.text(
             this.buttons.right.x, this.buttons.right.y, '▶',
@@ -98,7 +98,7 @@ class TouchControls {
             0x00cc00,
             buttonAlpha
         );
-        this.buttons.jump.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.jump.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.jump = this.scene.add.text(
             this.buttons.jump.x, this.buttons.jump.y, 'UP',
@@ -114,7 +114,7 @@ class TouchControls {
             0x0088ff,
             buttonAlpha
         );
-        this.buttons.dash.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.dash.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.dash = this.scene.add.text(
             this.buttons.dash.x, this.buttons.dash.y, 'DASH',
@@ -133,7 +133,7 @@ class TouchControls {
             0xff3333,
             buttonAlpha
         );
-        this.buttons.basicAttack.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.basicAttack.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.basicAttack = this.scene.add.text(
             this.buttons.basicAttack.x, this.buttons.basicAttack.y, 'Z',
@@ -149,7 +149,7 @@ class TouchControls {
             0xff6600,
             buttonAlpha
         );
-        this.buttons.strongAttack.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.strongAttack.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.strongAttack = this.scene.add.text(
             this.buttons.strongAttack.x, this.buttons.strongAttack.y, 'X',
@@ -168,7 +168,7 @@ class TouchControls {
             0xaa00ff,
             buttonAlpha
         );
-        this.buttons.skill.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.skill.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.skill = this.scene.add.text(
             this.buttons.skill.x, this.buttons.skill.y, 'C',
@@ -187,7 +187,7 @@ class TouchControls {
             0xffaa00,
             buttonAlpha
         );
-        this.buttons.abilitySwap1.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.abilitySwap1.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.abilitySwap1 = this.scene.add.text(
             this.buttons.abilitySwap1.x, this.buttons.abilitySwap1.y, 'Q',
@@ -203,7 +203,7 @@ class TouchControls {
             0xffaa00,
             buttonAlpha
         );
-        this.buttons.abilitySwap2.setScrollFactor(0).setDepth(3000).setInteractive();
+        this.buttons.abilitySwap2.setScrollFactor(0).setDepth(3000);
 
         this.buttonTexts.abilitySwap2 = this.scene.add.text(
             this.buttons.abilitySwap2.x, this.buttons.abilitySwap2.y, 'E',
@@ -213,34 +213,55 @@ class TouchControls {
     }
 
     setupTouchEvents() {
-        // 모든 버튼에 대해 멀티터치 지원 이벤트 처리
+        // Scene 레벨에서 모든 포인터 추적 (멀티터치 완전 지원)
+        this.scene.input.on('pointerdown', (pointer) => {
+            this.checkPointerOnButtons(pointer, true);
+        });
+
+        this.scene.input.on('pointermove', (pointer) => {
+            this.checkPointerOnButtons(pointer, pointer.isDown);
+        });
+
+        this.scene.input.on('pointerup', (pointer) => {
+            this.releasePointer(pointer);
+        });
+    }
+
+    // 포인터가 어느 버튼 위에 있는지 확인
+    checkPointerOnButtons(pointer, isDown) {
+        if (!isDown) return;
+
         Object.keys(this.buttons).forEach(key => {
             const button = this.buttons[key];
+            const bounds = button.getBounds();
 
-            // 버튼 눌림 - 포인터 ID 저장
-            button.on('pointerdown', (pointer) => {
-                this.inputs[key] = true;
-                this.activePointers[key] = pointer.id;
-                button.setAlpha(0.9);
-            });
-
-            // 버튼 떼어짐 - 해당 포인터 ID 확인 후 해제
-            button.on('pointerup', (pointer) => {
+            // 포인터가 버튼 영역 안에 있는지 확인
+            if (bounds.contains(pointer.x, pointer.y)) {
+                // 아직 이 버튼을 누르는 포인터가 없거나, 같은 포인터인 경우
+                if (this.activePointers[key] === null || this.activePointers[key] === pointer.id) {
+                    this.inputs[key] = true;
+                    this.activePointers[key] = pointer.id;
+                    button.setAlpha(0.9);
+                }
+            } else {
+                // 이 포인터가 버튼을 누르고 있었는데 영역 밖으로 나간 경우
                 if (this.activePointers[key] === pointer.id) {
                     this.inputs[key] = false;
                     this.activePointers[key] = null;
                     button.setAlpha(0.6);
                 }
-            });
+            }
+        });
+    }
 
-            // 포인터가 버튼 밖으로 나감 - 해당 포인터 ID 확인 후 해제
-            button.on('pointerout', (pointer) => {
-                if (this.activePointers[key] === pointer.id) {
-                    this.inputs[key] = false;
-                    this.activePointers[key] = null;
-                    button.setAlpha(0.6);
-                }
-            });
+    // 포인터 떼어짐 처리
+    releasePointer(pointer) {
+        Object.keys(this.buttons).forEach(key => {
+            if (this.activePointers[key] === pointer.id) {
+                this.inputs[key] = false;
+                this.activePointers[key] = null;
+                this.buttons[key].setAlpha(0.6);
+            }
         });
     }
 
@@ -262,6 +283,11 @@ class TouchControls {
     }
 
     destroy() {
+        // Scene 이벤트 리스너 제거
+        this.scene.input.off('pointerdown');
+        this.scene.input.off('pointermove');
+        this.scene.input.off('pointerup');
+
         // 모든 버튼과 텍스트 제거
         Object.values(this.buttons).forEach(button => {
             if (button) button.destroy();
