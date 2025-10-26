@@ -36,20 +36,55 @@ class GameOverScene extends Phaser.Scene {
                 repeat: -1
             });
 
+            // 현재 점수 및 난이도 정보
+            const currentScore = this.registry.get('currentScore') || 0;
+            const difficulty = window.difficultyManager.getDifficulty();
+            const difficultyInfo = window.difficultyManager.getDifficultyInfo();
+
+            // 난이도 표시
+            const difficultyText = this.add.text(
+                CONSTANTS.GAME.WIDTH / 2,
+                230,
+                `난이도: ${difficultyInfo.name}`,
+                {
+                    fontSize: '20px',
+                    fill: difficultyInfo.color,
+                    fontStyle: 'bold'
+                }
+            );
+            difficultyText.setOrigin(0.5);
+
+            // 점수 표시
+            const scoreText = this.add.text(
+                CONSTANTS.GAME.WIDTH / 2,
+                270,
+                `획득 점수: ${window.scoreManager.formatScore(currentScore)}`,
+                {
+                    fontSize: '24px',
+                    fill: '#ffff00',
+                    fontStyle: 'bold',
+                    backgroundColor: '#00000088',
+                    padding: { x: 15, y: 8 }
+                }
+            );
+            scoreText.setOrigin(0.5);
+
             // 재시작 버튼
             this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                300,
+                350,
                 '다시 시작',
                 () => {
-                    this.scene.start('GameScene');
+                    // 마지막으로 플레이한 스테이지로 복귀
+                    const lastStage = this.registry.get('lastStage') || 'Stage1Scene';
+                    this.scene.start(lastStage);
                 }
             );
 
             // 메인 메뉴 버튼
             this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                380,
+                430,
                 '메인 메뉴',
                 () => {
                     this.scene.start('MainMenuScene');
@@ -59,7 +94,7 @@ class GameOverScene extends Phaser.Scene {
             // 힌트 텍스트
             const hintText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                480,
+                530,
                 '팁: 능력을 교체하면 특별한 효과가 발동됩니다!\n각 능력의 교체 효과를 활용해보세요.',
                 {
                     fontSize: '16px',

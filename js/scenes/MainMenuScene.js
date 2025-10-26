@@ -36,44 +36,34 @@ class MainMenuScene extends Phaser.Scene {
             );
             subtitle.setOrigin(0.5);
 
+            // 난이도 선택
+            this.createDifficultyButtons();
+
             // 시작 버튼
             const startButton = this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                300,
+                360,
                 '게임 시작',
                 () => {
                     this.scene.start('StageSelectScene');
                 }
             );
 
-            // 조작법 표시
-            const controls = [
-                '[ 조작법 ]',
-                '',
-                '← → : 이동',
-                '↑ : 점프',
-                'Shift : 대시',
-                '',
-                'Z : 기본 공격',
-                'X : 강 공격',
-                'C : 특수 스킬',
-                '',
-                'Q / E : 능력 교체'
-            ];
-
-            const controlsText = this.add.text(
+            // 최고 점수 표시
+            this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                420,
-                controls.join('\n'),
+                440,
+                '',
                 {
                     fontSize: '16px',
                     fill: '#fff',
                     backgroundColor: '#00000088',
-                    padding: { x: 20, y: 15 },
+                    padding: { x: 15, y: 10 },
                     align: 'center'
                 }
             );
-            controlsText.setOrigin(0.5);
+            this.highScoreText.setOrigin(0.5);
+            this.updateHighScoreDisplay();
 
             // 버전 정보
             const version = this.add.text(
@@ -136,6 +126,128 @@ class MainMenuScene extends Phaser.Scene {
         });
 
         return { button, buttonText };
+    }
+
+    createDifficultyButtons() {
+        const centerX = CONSTANTS.GAME.WIDTH / 2;
+        const y = 290;
+        const buttonWidth = 100;
+        const spacing = 120;
+
+        // 난이도 레이블
+        const label = this.add.text(
+            centerX,
+            y - 30,
+            '[ 난이도 ]',
+            {
+                fontSize: '18px',
+                fill: '#fff',
+                fontStyle: 'bold'
+            }
+        );
+        label.setOrigin(0.5);
+
+        // 현재 난이도
+        const currentDifficulty = window.difficultyManager.getDifficulty();
+        const difficulties = window.difficultyManager.getAllDifficulties();
+
+        this.difficultyButtons = [];
+
+        difficulties.forEach((diff, index) => {
+            const xPos = centerX + (index - 1) * spacing;
+            const isSelected = diff.key === currentDifficulty;
+
+            // 버튼 배경
+            const button = this.add.rectangle(
+                xPos,
+                y,
+                buttonWidth,
+                40,
+                isSelected ? 0xffffff : 0x666666
+            );
+            button.setInteractive({ useHandCursor: true });
+
+            // 버튼 텍스트
+            const buttonText = this.add.text(
+                xPos,
+                y,
+                diff.name,
+                {
+                    fontSize: '20px',
+                    fill: isSelected ? '#000' : '#fff',
+                    fontStyle: 'bold'
+                }
+            );
+            buttonText.setOrigin(0.5);
+
+            // 호버 효과
+            button.on('pointerover', () => {
+                if (!isSelected) {
+                    button.setFillStyle(0x888888);
+                }
+                buttonText.setScale(1.1);
+            });
+
+            button.on('pointerout', () => {
+                button.setFillStyle(isSelected ? 0xffffff : 0x666666);
+                buttonText.setScale(1);
+            });
+
+            // 클릭 이벤트
+            button.on('pointerup', () => {
+                // 난이도 변경
+                window.difficultyManager.setDifficulty(diff.key);
+
+                // 모든 버튼 업데이트
+                this.updateDifficultyButtons();
+
+                // 최고점수 표시 업데이트
+                this.updateHighScoreDisplay();
+            });
+
+            this.difficultyButtons.push({ button, buttonText, key: diff.key });
+        });
+    }
+
+    updateDifficultyButtons() {
+        const currentDifficulty = window.difficultyManager.getDifficulty();
+
+        this.difficultyButtons.forEach(item => {
+            const isSelected = item.key === currentDifficulty;
+            item.button.setFillStyle(isSelected ? 0xffffff : 0x666666);
+            item.buttonText.setStyle({
+                fill: isSelected ? '#000' : '#fff'
+            });
+        });
+    }
+
+    updateHighScoreDisplay() {
+        const currentDifficulty = window.difficultyManager.getDifficulty();
+        const diffInfo = window.difficultyManager.getDifficultyInfo();
+        const scores = window.scoreManager.getAllHighScores(currentDifficulty);
+
+        const stageNames = {
+            'Stage1Scene': '슬라임 숲',
+            'Stage2Scene': '폐허 성',
+            'Stage3Scene': '마법 탑'
+        };
+
+        const scoreLines = [
+            `[ ${diffInfo.name} 난이도 최고 점수 ]`,
+            ''
+        ];
+
+        Object.keys(scores).forEach(stageKey => {
+            const stageName = stageNames[stageKey] || stageKey;
+            const score = scores[stageKey];
+            scoreLines.push(`${stageName}: ${window.scoreManager.formatScore(score)}`);
+        });
+
+        const totalScore = window.scoreManager.getTotalHighScore(currentDifficulty);
+        scoreLines.push('');
+        scoreLines.push(`총합: ${window.scoreManager.formatScore(totalScore)}`);
+
+        this.highScoreText.setText(scoreLines.join('\n'));
     }
 
     createFullscreenButton() {

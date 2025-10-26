@@ -486,12 +486,6 @@ class Player {
                 this.specialSkill();
             }
 
-            // 능력 교체
-            if (Phaser.Input.Keyboard.JustDown(keys.abilitySwap1) ||
-                Phaser.Input.Keyboard.JustDown(keys.abilitySwap2)) {
-                this.swapAbility();
-            }
-
             // 현재 능력 업데이트
             const ability = this.getCurrentAbility();
             if (ability) {

@@ -19,14 +19,20 @@
     <script src="js/utils/MobileDetector.js"></script>
     <script src="js/utils/TouchControls.js"></script>
 
-    <!-- 2. 능력 시스템 -->
+    <!-- 2. 매니저 -->
+    <script src="js/managers/DifficultyManager.js"></script>
+    <script src="js/managers/ScoreManager.js"></script>
+
+    <!-- 3. 능력 시스템 -->
     <script src="js/abilities/AbilityBase.js"></script>
     <script src="js/abilities/SwordAbility.js"></script>
     <script src="js/abilities/MagicAbility.js"></script>
     <script src="js/abilities/HammerAbility.js"></script>
     <script src="js/abilities/BowAbility.js"></script>
+    <script src="js/abilities/WeaponMasterAbility.js"></script>
+    <script src="js/abilities/FighterAbility.js"></script>
 
-    <!-- 3. 엔티티 -->
+    <!-- 4. 엔티티 -->
     <script src="js/entities/Enemy.js"></script>
     <script src="js/entities/Slime.js"></script>
     <script src="js/entities/SwordEnemy.js"></script>
@@ -35,21 +41,22 @@
     <script src="js/entities/TrunkEnemy.js"></script>
     <script src="js/entities/Player.js"></script>
 
-    <!-- 3-1. 보스 -->
+    <!-- 4-1. 보스 -->
     <script src="js/entities/bosses/SlimeBoss.js"></script>
     <script src="js/entities/bosses/SwordBoss.js"></script>
     <script src="js/entities/bosses/RinoBoss.js"></script>
     <script src="js/entities/bosses/SkullBoss.js"></script>
     <script src="js/entities/bosses/MageBoss.js"></script>
 
-    <!-- 4. 아이템 시스템 -->
+    <!-- 5. 아이템 시스템 -->
     <script src="js/items/ItemBase.js"></script>
     <script src="js/items/ConsumableItems.js"></script>
     <script src="js/items/PassiveItems.js"></script>
 
-    <!-- 5. Scene 시스템 -->
+    <!-- 6. Scene 시스템 -->
     <script src="js/scenes/MainMenuScene.js"></script>
     <script src="js/scenes/StageSelectScene.js"></script>
+    <script src="js/scenes/ClassSelectScene.js"></script>
     <script src="js/scenes/Stage1Scene.js"></script>
     <script src="js/scenes/Stage2Scene.js"></script>
     <script src="js/scenes/Stage3Scene.js"></script>
@@ -58,7 +65,7 @@
     <script src="js/scenes/GameScene.js"></script>
     <script src="js/scenes/GameOverScene.js"></script>
 
-    <!-- 6. 메인 게임 -->
+    <!-- 7. 메인 게임 -->
     <script src="js/game.js"></script>
 </body>
 </html>

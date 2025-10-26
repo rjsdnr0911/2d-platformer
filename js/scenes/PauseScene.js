@@ -168,24 +168,29 @@ class PauseScene extends Phaser.Scene {
     }
 
     resumeGame() {
+        // registry에서 일시정지된 씬의 키를 가져옴
+        const activeSceneKey = this.registry.get('activeScene');
+
         // 일시정지 해제
-        this.scene.resume(this.scene.get('activeScene'));
+        this.scene.resume(activeSceneKey);
         this.scene.stop('PauseScene');
     }
 
     restartGame() {
-        // 현재 씬 재시작
-        const activeScene = this.scene.get('activeScene');
+        // registry에서 현재 씬의 키를 가져옴
+        const activeSceneKey = this.registry.get('activeScene');
+
         this.scene.stop('PauseScene');
-        this.scene.stop(activeScene);
-        this.scene.start(activeScene);
+        this.scene.stop(activeSceneKey);
+        this.scene.start(activeSceneKey);
     }
 
     returnToMenu() {
-        // 메인 메뉴로
-        const activeScene = this.scene.get('activeScene');
+        // registry에서 현재 씬의 키를 가져옴
+        const activeSceneKey = this.registry.get('activeScene');
+
         this.scene.stop('PauseScene');
-        this.scene.stop(activeScene);
+        this.scene.stop(activeSceneKey);
         this.scene.start('MainMenuScene');
     }
 }

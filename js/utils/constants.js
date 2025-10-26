@@ -70,6 +70,38 @@ const CONSTANTS = {
             STRONG_COOLDOWN: 1500,
             SKILL_COOLDOWN: 4000,
             RANGE: 300
+        },
+        WEAPON_MASTER: {
+            // Guardian Knight form
+            KNIGHT_BASIC_DAMAGE: 12,
+            KNIGHT_STRONG_DAMAGE: 28,
+            KNIGHT_SKILL_DAMAGE: 45,
+            // Twilight Archer form
+            ARCHER_BASIC_DAMAGE: 10,
+            ARCHER_STRONG_DAMAGE: 22,
+            ARCHER_SKILL_DAMAGE: 40,
+            // Elemental Wizard form
+            WIZARD_BASIC_DAMAGE: 9,
+            WIZARD_STRONG_DAMAGE: 24,
+            WIZARD_SKILL_DAMAGE: 42,
+            // Common cooldowns
+            BASIC_COOLDOWN: 100,
+            STRONG_COOLDOWN: 1200,
+            SKILL_COOLDOWN: 4000,
+            FORM_SWITCH_COOLDOWN: 500,
+            RANGE: 200
+        },
+        FIGHTER: {
+            BASIC_DAMAGE: 8,
+            STRONG_DAMAGE: 30,
+            SKILL_DAMAGE: 50,
+            BASIC_COOLDOWN: 100,
+            STRONG_COOLDOWN: 1500,
+            SKILL_COOLDOWN: 5000,
+            RAGE_PER_HIT: 10,
+            MAX_RAGE: 100,
+            RAGE_DECAY: 5, // per second
+            RANGE: 45
         }
     },
 

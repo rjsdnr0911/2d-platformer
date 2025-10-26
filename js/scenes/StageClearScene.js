@@ -12,9 +12,17 @@ class StageClearScene extends Phaser.Scene {
             // 클리어한 스테이지 정보 가져오기
             this.clearedStage = this.registry.get('currentStage');
             this.clearTime = this.registry.get('clearTime');
+            this.currentScore = this.registry.get('currentScore') || 0;
+
+            // 난이도 정보
+            this.difficulty = window.difficultyManager.getDifficulty();
+            this.difficultyInfo = window.difficultyManager.getDifficultyInfo();
 
             // 저장 데이터 로드
             this.saveData = window.saveManager.load();
+
+            // 스테이지 키 생성
+            const stageKey = `Stage${this.clearedStage}Scene`;
 
             // 스테이지 정보
             const stageNames = {
@@ -57,37 +65,66 @@ class StageClearScene extends Phaser.Scene {
             );
             stageName.setOrigin(0.5);
 
+            // 난이도 표시
+            const difficultyText = this.add.text(
+                CONSTANTS.GAME.WIDTH / 2,
+                200,
+                `난이도: ${this.difficultyInfo.name}`,
+                {
+                    fontSize: '20px',
+                    fill: this.difficultyInfo.color,
+                    fontStyle: 'bold'
+                }
+            );
+            difficultyText.setOrigin(0.5);
+
             // 클리어 시간
             const timeText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                220,
+                240,
                 `클리어 시간: ${this.formatTime(this.clearTime)}`,
                 {
-                    fontSize: '24px',
+                    fontSize: '20px',
                     fill: '#ffffff',
                     backgroundColor: '#00000088',
-                    padding: { x: 20, y: 10 }
+                    padding: { x: 15, y: 8 }
                 }
             );
             timeText.setOrigin(0.5);
 
-            // 최단 기록 체크
-            const bestTime = this.saveData.bestTimes[this.clearedStage];
-            let recordText = '';
+            // 점수 표시
+            const scoreText = this.add.text(
+                CONSTANTS.GAME.WIDTH / 2,
+                280,
+                `점수: ${window.scoreManager.formatScore(this.currentScore)}`,
+                {
+                    fontSize: '24px',
+                    fill: '#ffff00',
+                    fontStyle: 'bold',
+                    backgroundColor: '#00000088',
+                    padding: { x: 20, y: 10 }
+                }
+            );
+            scoreText.setOrigin(0.5);
 
-            if (!bestTime || this.clearTime < bestTime) {
+            // 최고 점수 체크 및 저장
+            const previousHighScore = window.scoreManager.getHighScore(stageKey, this.difficulty);
+            const isNewRecord = window.scoreManager.saveHighScore(stageKey, this.difficulty, this.currentScore);
+
+            let recordText = '';
+            if (isNewRecord) {
                 recordText = '🏆 신기록! 🏆';
             } else {
-                recordText = `최단 기록: ${this.formatTime(bestTime)}`;
+                recordText = `최고 점수: ${window.scoreManager.formatScore(previousHighScore)}`;
             }
 
             const recordDisplay = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                270,
+                320,
                 recordText,
                 {
                     fontSize: '20px',
-                    fill: (!bestTime || this.clearTime < bestTime) ? '#ffff00' : '#aaaaaa',
+                    fill: isNewRecord ? '#ffff00' : '#aaaaaa',
                     fontStyle: 'bold'
                 }
             );
@@ -98,7 +135,7 @@ class StageClearScene extends Phaser.Scene {
             if (nextStage <= 3) {
                 const unlockText = this.add.text(
                     CONSTANTS.GAME.WIDTH / 2,
-                    330,
+                    370,
                     `✨ ${stageNames[nextStage]} 해금! ✨`,
                     {
                         fontSize: '22px',
@@ -113,7 +150,7 @@ class StageClearScene extends Phaser.Scene {
                 // 모든 스테이지 클리어
                 const allClearText = this.add.text(
                     CONSTANTS.GAME.WIDTH / 2,
-                    330,
+                    370,
                     '🎊 모든 스테이지 클리어! 🎊',
                     {
                         fontSize: '26px',
@@ -127,7 +164,7 @@ class StageClearScene extends Phaser.Scene {
             }
 
             // 버튼 생성
-            const buttonY = 420;
+            const buttonY = 460;
             const buttonSpacing = 70;
 
             // 스테이지 선택으로 돌아가기

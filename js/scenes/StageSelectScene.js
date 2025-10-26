@@ -228,12 +228,11 @@ class StageSelectScene extends Phaser.Scene {
     }
 
     startStage(stageNumber) {
-        // 스테이지 시작 시간 저장
-        this.registry.set('stageStartTime', Date.now());
-        this.registry.set('currentStage', stageNumber);
+        // 선택된 스테이지 저장
+        this.registry.set('selectedStage', stageNumber);
 
-        // 해당 스테이지 Scene으로 전환
-        this.scene.start(`Stage${stageNumber}Scene`);
+        // 직업 선택 화면으로 이동
+        this.scene.start('ClassSelectScene');
     }
 
     formatTime(ms) {

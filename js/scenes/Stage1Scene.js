@@ -70,7 +70,6 @@ class Stage1Scene extends Phaser.Scene {
 
             // 전역 변수 초기화
             window.player = null;
-            window.abilityOrbs = [];
             window.items = [];
 
             // 로컬 변수
@@ -123,11 +122,32 @@ class Stage1Scene extends Phaser.Scene {
             // 플레이어 생성
             window.player = new Player(this, 100, 400);
 
-            // 시작 능력 장착
-            const swordAbility = new SwordAbility(this);
-            const magicAbility = new MagicAbility(this);
-            window.player.equipAbility(swordAbility, 0);
-            window.player.equipAbility(magicAbility, 1);
+            // 선택된 직업 능력 장착
+            const selectedClass = this.registry.get('selectedClass') || 'warrior';
+            let ability = null;
+
+            switch (selectedClass) {
+                case 'warrior':
+                    ability = new SwordAbility(this);
+                    break;
+                case 'wizard':
+                    ability = new MagicAbility(this);
+                    break;
+                case 'weaponmaster':
+                    ability = new WeaponMasterAbility(this);
+                    break;
+                case 'fighter':
+                    ability = new FighterAbility(this);
+                    break;
+                default:
+                    ability = new SwordAbility(this);
+            }
+
+            window.player.equipAbility(ability, 0);
+
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log('선택된 직업:', selectedClass, '능력:', ability.name);
+            }
 
             // 카메라 설정
             this.setupCamera();
@@ -177,6 +197,10 @@ class Stage1Scene extends Phaser.Scene {
 
             // 현재 씬을 레지스트리에 저장 (일시정지 시 사용)
             this.registry.set('activeScene', 'Stage1Scene');
+
+            // 점수 시스템 시작
+            window.scoreManager.startGame();
+            this.registry.set('currentScore', 0);
 
             if (CONSTANTS.GAME.DEBUG) {
                 console.log('Stage 1 로드 완료');
@@ -329,12 +353,20 @@ class Stage1Scene extends Phaser.Scene {
 
         slimePositions.forEach(pos => {
             const slime = new Slime(this, pos.x, pos.y);
+
+            // 난이도 적용
+            const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
+            slime.maxHp = Math.round(slime.maxHp * difficultyMultiplier.enemyHpMultiplier);
+            slime.hp = slime.maxHp;
+            slime.damage = Math.round(slime.damage * difficultyMultiplier.enemyDamageMultiplier);
+            slime.sprite.setData('damage', slime.damage);
+
             this.enemyList.push(slime);
             this.enemies.add(slime.sprite);
         });
 
         if (CONSTANTS.GAME.DEBUG) {
-            console.log('Stage 1 적 생성 완료: 슬라임', slimePositions.length, '마리');
+            console.log('Stage 1 적 생성 완료: 슬라임', slimePositions.length, '마리 (난이도:', window.difficultyManager.getDifficulty(), ')');
         }
     }
 
@@ -383,7 +415,22 @@ class Stage1Scene extends Phaser.Scene {
             // 콤보 배율 적용 데미지
             const finalDamage = Math.floor(damage * comboMultiplier);
 
+            // 적이 죽을지 체크
+            const willDie = enemyEntity.hp <= finalDamage;
+
             enemyEntity.takeDamage(finalDamage);
+
+            // 적 처치 시 점수 추가
+            if (willDie) {
+                const score = window.scoreManager.addEnemyScore('slime');
+                if (score > 0) {
+                    this.registry.set('currentScore', window.scoreManager.getCurrentScore());
+
+                    if (CONSTANTS.GAME.DEBUG) {
+                        console.log('슬라임 처치 점수:', score, '총점:', window.scoreManager.getCurrentScore());
+                    }
+                }
+            }
 
             // 콤보 파티클 효과
             if (this.comboSystem && this.comboSystem.getComboCount() >= 3) {
@@ -433,63 +480,6 @@ class Stage1Scene extends Phaser.Scene {
         }
     }
 
-    handleAbilityOrbCollision(playerSprite, orb) {
-        if (!orb || !orb.active) return;
-
-        const abilityType = orb.getData('abilityType');
-
-        // 중복 체크: 이미 같은 타입의 능력이 있는지 확인
-        const hasSameAbility = window.player.abilities.some(ability => {
-            if (!ability) return false;
-            // 능력 타입 비교 (클래스 이름 기반)
-            const abilityName = ability.constructor.name.toLowerCase();
-            return abilityName.includes(abilityType);
-        });
-
-        if (hasSameAbility) {
-            // 이미 같은 능력이 있으면 무시
-            if (CONSTANTS.GAME.DEBUG) {
-                console.log('이미 같은 능력이 있습니다:', abilityType);
-            }
-            orb.destroy();
-            window.abilityOrbs = window.abilityOrbs.filter(o => o !== orb);
-            return;
-        }
-
-        let newAbility = null;
-
-        switch (abilityType) {
-            case 'sword':
-                newAbility = new SwordAbility(this);
-                break;
-            case 'magic':
-                newAbility = new MagicAbility(this);
-                break;
-            case 'hammer':
-                newAbility = new HammerAbility(this);
-                break;
-            case 'bow':
-                newAbility = new BowAbility(this);
-                break;
-        }
-
-        if (newAbility) {
-            const emptySlot = window.player.abilities.findIndex(a => a === null);
-
-            if (emptySlot !== -1) {
-                window.player.equipAbility(newAbility, emptySlot);
-            } else {
-                const oldAbility = window.player.getCurrentAbility();
-                if (oldAbility) {
-                    oldAbility.destroy();
-                }
-                window.player.equipAbility(newAbility, window.player.currentAbilityIndex);
-            }
-
-            orb.destroy();
-            window.abilityOrbs = window.abilityOrbs.filter(o => o !== orb);
-        }
-    }
 
     createUI() {
         // 스테이지 이름
@@ -507,6 +497,22 @@ class Stage1Scene extends Phaser.Scene {
         );
         this.stageText.setOrigin(0.5, 0);
         this.stageText.setScrollFactor(0);
+
+        // 점수 표시 (오른쪽 위)
+        this.scoreText = this.add.text(
+            CONSTANTS.GAME.WIDTH - 16,
+            50,
+            '',
+            {
+                fontSize: '18px',
+                fill: '#ffff00',
+                backgroundColor: '#000',
+                padding: { x: 10, y: 5 },
+                fontStyle: 'bold'
+            }
+        );
+        this.scoreText.setOrigin(1, 0);
+        this.scoreText.setScrollFactor(0);
 
         // 체력 표시
         this.healthText = this.add.text(16, 50, '', {
@@ -548,7 +554,7 @@ class Stage1Scene extends Phaser.Scene {
         const controlsText = this.add.text(
             CONSTANTS.GAME.WIDTH - 16,
             16,
-            '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격 | Q/E 능력교체',
+            '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격',
             {
                 fontSize: '12px',
                 fill: '#fff',
@@ -562,23 +568,22 @@ class Stage1Scene extends Phaser.Scene {
     }
 
     updateUI() {
+        // 점수 표시
+        if (this.scoreText) {
+            const currentScore = window.scoreManager.getCurrentScore();
+            this.scoreText.setText(`점수: ${window.scoreManager.formatScore(currentScore)}`);
+        }
+
         if (window.player && this.healthText) {
             const hearts = Math.ceil(window.player.hp / 10);
             this.healthText.setText(`HP: ${'❤'.repeat(hearts)} (${window.player.hp}/${window.player.maxHp})`);
         }
 
         if (window.player && this.abilityText) {
-            const ability1 = window.player.abilities[0];
-            const ability2 = window.player.abilities[1];
-            const current = window.player.currentAbilityIndex;
+            const currentAbility = window.player.getCurrentAbility();
+            const abilityName = currentAbility ? currentAbility.name : '없음';
 
-            const name1 = ability1 ? ability1.name : '없음';
-            const name2 = ability2 ? ability2.name : '없음';
-
-            const marker1 = current === 0 ? '→' : ' ';
-            const marker2 = current === 1 ? '→' : ' ';
-
-            this.abilityText.setText(`능력: ${marker1}[1] ${name1}  ${marker2}[2] ${name2}`);
+            this.abilityText.setText(`직업: ${abilityName}`);
         }
 
         if (window.player && this.cooldownText) {
@@ -611,6 +616,8 @@ class Stage1Scene extends Phaser.Scene {
         this.cameras.main.fadeOut(500, 0, 0, 0);
 
         this.cameras.main.once('camerafadeoutcomplete', () => {
+            // 현재 스테이지 정보 저장 (다시하기 시 사용)
+            this.registry.set('lastStage', 'Stage1Scene');
             this.scene.start('GameOverScene');
         });
     }
@@ -679,12 +686,22 @@ class Stage1Scene extends Phaser.Scene {
                     // 보스 생성 (보스 구역: x=2900 근처)
                     this.boss = new SlimeBoss(this, 2900, 400);
 
+                    // 난이도 적용
+                    const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
+                    this.boss.maxHp = Math.round(this.boss.maxHp * difficultyMultiplier.enemyHpMultiplier);
+                    this.boss.hp = this.boss.maxHp;
+                    this.boss.damage = Math.round(this.boss.damage * difficultyMultiplier.enemyDamageMultiplier);
+                    if (this.boss.sprite) {
+                        this.boss.sprite.setData('damage', this.boss.damage);
+                    }
+
                     if (CONSTANTS.GAME.DEBUG) {
                         console.log('SlimeBoss 객체 생성 성공');
                         console.log('보스 sprite:', this.boss.sprite);
                         console.log('보스 sprite.body:', this.boss.sprite ? this.boss.sprite.body : null);
                         console.log('보스 isAlive:', this.boss.isAlive);
                         console.log('보스 isBoss:', this.boss.isBoss);
+                        console.log('보스 HP:', this.boss.hp, '난이도:', window.difficultyManager.getDifficulty());
                     }
 
                     this.enemyList.push(this.boss);
@@ -709,6 +726,14 @@ class Stage1Scene extends Phaser.Scene {
     handleBossDefeated(stageNumber) {
         console.log('Stage', stageNumber, '보스 처치!');
 
+        // 보스 처치 점수 추가
+        const bossScore = window.scoreManager.addEnemyScore('boss');
+        this.registry.set('currentScore', window.scoreManager.getCurrentScore());
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('보스 처치 점수:', bossScore, '총점:', window.scoreManager.getCurrentScore());
+        }
+
         // 스테이지 클리어
         this.time.delayedCall(2000, () => {
             this.handleStageClear();
@@ -719,6 +744,22 @@ class Stage1Scene extends Phaser.Scene {
         // 스테이지 클리어 시간 계산
         const startTime = this.registry.get('stageStartTime');
         const clearTime = Date.now() - startTime;
+
+        // 스테이지 클리어 보너스
+        const stageClearScore = window.scoreManager.addStageClearScore();
+
+        // 시간 보너스
+        const timeBonus = window.scoreManager.calculateTimeBonus();
+
+        // 최종 점수
+        const finalScore = window.scoreManager.getCurrentScore();
+        this.registry.set('currentScore', finalScore);
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('스테이지 클리어 점수:', stageClearScore);
+            console.log('시간 보너스:', timeBonus);
+            console.log('최종 점수:', finalScore);
+        }
 
         // 저장 데이터 업데이트
         const saveData = window.saveManager.load();
@@ -832,21 +873,6 @@ class Stage1Scene extends Phaser.Scene {
                     }
                 });
             }
-
-            // 능력 오브 충돌 체크
-            window.abilityOrbs.forEach(orb => {
-                if (orb && orb.active && window.player && window.player.sprite) {
-                    this.physics.overlap(
-                        window.player.sprite,
-                        orb,
-                        this.handleAbilityOrbCollision,
-                        null,
-                        this
-                    );
-                }
-            });
-
-            window.abilityOrbs = window.abilityOrbs.filter(orb => orb && orb.active);
 
             // 아이템 업데이트 및 충돌 체크
             window.items.forEach(item => {
