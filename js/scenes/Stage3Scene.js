@@ -553,7 +553,13 @@ class Stage3Scene extends Phaser.Scene {
             const currentAbility = window.player.getCurrentAbility();
             const abilityName = currentAbility ? currentAbility.name : '없음';
 
-            this.abilityText.setText(`직업: ${abilityName}`);
+            // 웨폰마스터인 경우 현재 폼 표시
+            if (currentAbility && currentAbility.name === '웨폰마스터') {
+                const formName = currentAbility.getCurrentFormName();
+                this.abilityText.setText(`직업: ${abilityName} [${formName}]`);
+            } else {
+                this.abilityText.setText(`직업: ${abilityName}`);
+            }
         }
 
         if (window.player && this.cooldownText) {

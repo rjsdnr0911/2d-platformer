@@ -486,8 +486,18 @@ class Player {
                 this.specialSkill();
             }
 
-            // 현재 능력 업데이트
+            // 웨폰마스터 폼 전환 (Q/E 키)
             const ability = this.getCurrentAbility();
+            if (ability && ability.name === '웨폰마스터') {
+                if (Phaser.Input.Keyboard.JustDown(keys.abilitySwap1)) {
+                    ability.switchForm('left');
+                }
+                if (Phaser.Input.Keyboard.JustDown(keys.abilitySwap2)) {
+                    ability.switchForm('right');
+                }
+            }
+
+            // 현재 능력 업데이트
             if (ability) {
                 ability.update();
             }

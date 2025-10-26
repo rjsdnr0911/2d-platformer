@@ -234,7 +234,11 @@ class SkullBoss extends Enemy {
         // 부유 효과
         const time = this.scene.time.now;
         const floatY = this.initialY + Math.sin(time * this.floatSpeed) * this.floatAmplitude;
-        this.sprite.y = floatY;
+
+        // Y 좌표 경계 체크 (바닥 밑으로 안 내려가도록)
+        const minY = 150; // 최소 높이
+        const maxY = CONSTANTS.GAME.HEIGHT - 100; // 최대 높이 (바닥 위)
+        this.sprite.y = Phaser.Math.Clamp(floatY, minY, maxY);
 
         // 플레이어 추적 (천천히)
         if (window.player && window.player.sprite && window.player.sprite.active) {

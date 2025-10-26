@@ -69,7 +69,7 @@ class SaveManager {
         }
 
         // 다음 스테이지 해금
-        if (stageNumber < 3) {
+        if (stageNumber < 4) {
             this.unlockStage(stageNumber + 1, currentData);
         }
 

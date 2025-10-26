@@ -49,6 +49,13 @@ class StageSelectScene extends Phaser.Scene {
                     description: '강력한 마법이 소용돌이치는 탑\n대마법사를 격파하라!',
                     color: 0x9C27B0,
                     boss: '아크메이지'
+                },
+                {
+                    number: 4,
+                    name: 'Stage 4: 화산 동굴',
+                    description: '용암이 끓어오르는 위험한 동굴\n하늘의 수호자를 격파하라!',
+                    color: 0xFF4500,
+                    boss: '스카이 가디언'
                 }
             ];
 

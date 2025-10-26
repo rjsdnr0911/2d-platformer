@@ -1,7 +1,7 @@
-// Stage 2: 폐허의 성
-class Stage2Scene extends Phaser.Scene {
+// Stage 4: 화산 동굴
+class Stage4Scene extends Phaser.Scene {
     constructor() {
-        super({ key: 'Stage2Scene' });
+        super({ key: 'Stage4Scene' });
     }
 
     preload() {
@@ -31,28 +31,24 @@ class Stage2Scene extends Phaser.Scene {
             frameHeight: 32
         });
 
-        // Ghost 스프라이트시트 로드
-        this.load.spritesheet('ghost_idle', 'assets/Ghost/Idle (44x30).png', {
-            frameWidth: 44,
+        // Bat 스프라이트시트 로드
+        this.load.spritesheet('bat_flying', 'assets/Bat/Flying (46x30).png', {
+            frameWidth: 46,
             frameHeight: 30
         });
-        this.load.spritesheet('ghost_hit', 'assets/Ghost/Hit (44x30).png', {
-            frameWidth: 44,
+        this.load.spritesheet('bat_hit', 'assets/Bat/Hit (46x30).png', {
+            frameWidth: 46,
             frameHeight: 30
         });
 
-        // Rino 보스 스프라이트시트 로드
-        this.load.spritesheet('rino_idle', 'assets/Rino/Idle (52x34).png', {
-            frameWidth: 52,
-            frameHeight: 34
+        // BlueBird 보스 스프라이트시트 로드
+        this.load.spritesheet('bluebird_flying', 'assets/BlueBird/Flying (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
         });
-        this.load.spritesheet('rino_run', 'assets/Rino/Run (52x34).png', {
-            frameWidth: 52,
-            frameHeight: 34
-        });
-        this.load.spritesheet('rino_hit', 'assets/Rino/Hit (52x34).png', {
-            frameWidth: 52,
-            frameHeight: 34
+        this.load.spritesheet('bluebird_hit', 'assets/BlueBird/Hit (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
         });
     }
 
@@ -61,14 +57,14 @@ class Stage2Scene extends Phaser.Scene {
             // 플레이어 애니메이션 생성
             this.createPlayerAnimations();
 
-            // Ghost 애니메이션 생성
-            this.createGhostAnimations();
+            // Bat 애니메이션 생성
+            this.createBatAnimations();
 
-            // Rino 애니메이션 생성
-            this.createRinoAnimations();
+            // BlueBird 애니메이션 생성
+            this.createBlueBirdAnimations();
 
-            // 배경색 (어두운 붉은색 - 폐허의 성)
-            this.cameras.main.setBackgroundColor(0xB71C1C);
+            // 배경색 (어두운 빨강 - 화산 동굴)
+            this.cameras.main.setBackgroundColor(0x8B0000);
 
             // 전역 변수 초기화
             window.player = null;
@@ -81,11 +77,11 @@ class Stage2Scene extends Phaser.Scene {
             this.enemyList = [];
             this.boss = null;
             this.bossSpawned = false;
-            this.bossSpawning = false; // 보스 소환 진행 중 플래그
+            this.bossSpawning = false;
 
             // 스테이지 정보
-            this.stageNumber = 2;
-            this.stageName = 'Stage 2: 폐허의 성';
+            this.stageNumber = 4;
+            this.stageName = 'Stage 4: 화산 동굴';
 
             // 키보드 입력
             this.cursors = null;
@@ -112,7 +108,7 @@ class Stage2Scene extends Phaser.Scene {
             // 바닥 생성
             this.createGround();
 
-            // 플랫폼 생성 (Stage 2 레이아웃 - 성곽 테마)
+            // 플랫폼 생성 (Stage 4 레이아웃 - 화산 동굴 테마)
             this.createPlatforms();
 
             // 플레이어 생성
@@ -148,7 +144,7 @@ class Stage2Scene extends Phaser.Scene {
             // 카메라 설정
             this.setupCamera();
 
-            // 적 생성 (검병 중심)
+            // 적 생성 (박쥐)
             this.enemies = this.physics.add.group();
             this.createEnemies();
 
@@ -186,25 +182,24 @@ class Stage2Scene extends Phaser.Scene {
             this.events.on('playerDied', this.handlePlayerDeath, this);
 
             // 현재 씬을 레지스트리에 저장 (일시정지 시 사용)
-            this.registry.set('activeScene', 'Stage2Scene');
+            this.registry.set('activeScene', 'Stage4Scene');
 
             // 점수 시스템 시작
             window.scoreManager.startGame();
             this.registry.set('currentScore', 0);
 
             if (CONSTANTS.GAME.DEBUG) {
-                console.log('Stage 2 로드 완료');
+                console.log('Stage 4 로드 완료');
             }
 
         } catch (error) {
-            console.error('Stage2Scene create 오류:', error);
+            console.error('Stage4Scene create 오류:', error);
         }
     }
 
     createPlayerAnimations() {
-        if (this.anims.exists('player_idle')) return; // 이미 생성되었으면 스킵
+        if (this.anims.exists('player_idle')) return;
 
-        // Idle 애니메이션 (11 프레임)
         this.anims.create({
             key: 'player_idle',
             frames: this.anims.generateFrameNumbers('player_idle', { start: 0, end: 10 }),
@@ -212,7 +207,6 @@ class Stage2Scene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Run 애니메이션 (12 프레임)
         this.anims.create({
             key: 'player_run',
             frames: this.anims.generateFrameNumbers('player_run', { start: 0, end: 11 }),
@@ -220,28 +214,24 @@ class Stage2Scene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Jump 애니메이션
         this.anims.create({
             key: 'player_jump',
             frames: this.anims.generateFrameNumbers('player_jump', { start: 0, end: 0 }),
             frameRate: 1
         });
 
-        // Fall 애니메이션
         this.anims.create({
             key: 'player_fall',
             frames: this.anims.generateFrameNumbers('player_fall', { start: 0, end: 0 }),
             frameRate: 1
         });
 
-        // Double Jump 애니메이션
         this.anims.create({
             key: 'player_double_jump',
             frames: this.anims.generateFrameNumbers('player_double_jump', { start: 0, end: 5 }),
             frameRate: 12
         });
 
-        // Hit 애니메이션
         this.anims.create({
             key: 'player_hit',
             frames: this.anims.generateFrameNumbers('player_hit', { start: 0, end: 6 }),
@@ -249,44 +239,36 @@ class Stage2Scene extends Phaser.Scene {
         });
     }
 
-    createGhostAnimations() {
-        // Idle 애니메이션 (10 프레임)
+    createBatAnimations() {
+        // Flying 애니메이션 (4 프레임)
         this.anims.create({
-            key: 'ghost_idle',
-            frames: this.anims.generateFrameNumbers('ghost_idle', { start: 0, end: 9 }),
-            frameRate: 10,
+            key: 'bat_flying',
+            frames: this.anims.generateFrameNumbers('bat_flying', { start: 0, end: 3 }),
+            frameRate: 8,
             repeat: -1
         });
 
-        // Hit 애니메이션
+        // Hit 애니메이션 (5 프레임)
         this.anims.create({
-            key: 'ghost_hit',
-            frames: this.anims.generateFrameNumbers('ghost_hit', { start: 0, end: 4 }),
-            frameRate: 12
+            key: 'bat_hit',
+            frames: this.anims.generateFrameNumbers('bat_hit', { start: 0, end: 4 }),
+            frameRate: 10
         });
     }
 
-    createRinoAnimations() {
-        // Idle 애니메이션 (11 프레임)
+    createBlueBirdAnimations() {
+        // Flying 애니메이션 (9 프레임)
         this.anims.create({
-            key: 'rino_idle',
-            frames: this.anims.generateFrameNumbers('rino_idle', { start: 0, end: 10 }),
-            frameRate: 10,
+            key: 'bluebird_flying',
+            frames: this.anims.generateFrameNumbers('bluebird_flying', { start: 0, end: 8 }),
+            frameRate: 12,
             repeat: -1
         });
 
-        // Run 애니메이션 (6 프레임)
+        // Hit 애니메이션 (5 프레임)
         this.anims.create({
-            key: 'rino_run',
-            frames: this.anims.generateFrameNumbers('rino_run', { start: 0, end: 5 }),
-            frameRate: 10,
-            repeat: -1
-        });
-
-        // Hit 애니메이션
-        this.anims.create({
-            key: 'rino_hit',
-            frames: this.anims.generateFrameNumbers('rino_hit', { start: 0, end: 4 }),
+            key: 'bluebird_hit',
+            frames: this.anims.generateFrameNumbers('bluebird_hit', { start: 0, end: 4 }),
             frameRate: 12
         });
     }
@@ -302,7 +284,7 @@ class Stage2Scene extends Phaser.Scene {
                 groundY,
                 groundWidth,
                 groundHeight,
-                0x616161 // 회색 돌 (성곽 바닥)
+                0xB22222 // 붉은 용암 바닥
             );
             this.groundGroup.add(ground);
         }
@@ -312,30 +294,31 @@ class Stage2Scene extends Phaser.Scene {
 
     createPlatforms() {
         const platformData = [
-            // 시작 구간 (높낮이가 있는 성벽)
-            { x: 200, y: 450, w: 150, h: 20 },
-            { x: 400, y: 380, w: 120, h: 20 },
-            { x: 600, y: 480, w: 150, h: 20 },
+            // 시작 구간 (동굴 입구)
+            { x: 200, y: 480, w: 140, h: 20 },
+            { x: 400, y: 400, w: 120, h: 20 },
+            { x: 620, y: 470, w: 150, h: 20 },
 
-            // 검병 구간 1 (무너진 성벽)
-            { x: 900, y: 420, w: 180, h: 20 },
-            { x: 1100, y: 320, w: 130, h: 20 },
-            { x: 1300, y: 460, w: 150, h: 20 },
+            // 박쥐 구간 1 (공중 동굴)
+            { x: 850, y: 390, w: 130, h: 20 },
+            { x: 1050, y: 310, w: 140, h: 20 },
+            { x: 1280, y: 430, w: 150, h: 20 },
 
-            // 검병 구간 2 (층계 형태)
-            { x: 1600, y: 380, w: 160, h: 20 },
-            { x: 1800, y: 280, w: 120, h: 20 },
-            { x: 2000, y: 480, w: 180, h: 20 },
+            // 박쥐 구간 2 (용암 위)
+            { x: 1520, y: 340, w: 120, h: 20 },
+            { x: 1720, y: 450, w: 140, h: 20 },
+            { x: 1930, y: 280, w: 130, h: 20 },
 
-            // 검병 구간 3
-            { x: 2300, y: 360, w: 140, h: 20 },
-            { x: 2500, y: 450, w: 150, h: 20 },
+            // 박쥐 구간 3 (높은 공중)
+            { x: 2150, y: 380, w: 150, h: 20 },
+            { x: 2370, y: 260, w: 120, h: 20 },
+            { x: 2580, y: 410, w: 160, h: 20 },
 
-            // 보스 전 구간 (높은 탑)
-            { x: 2700, y: 280, w: 100, h: 20 },
+            // 보스 전 구간 (마지막 발판)
+            { x: 2780, y: 320, w: 100, h: 20 },
 
-            // 보스 구역 (넓은 성 광장)
-            { x: 2950, y: 500, w: 300, h: 20 }
+            // 보스 구역 (넓은 하늘 영역)
+            { x: 2980, y: 480, w: 340, h: 20 }
         ];
 
         platformData.forEach(data => {
@@ -344,7 +327,7 @@ class Stage2Scene extends Phaser.Scene {
                 data.y,
                 data.w,
                 data.h,
-                0x8D6E63 // 갈색 돌 (성벽 플랫폼)
+                0xFF4500 // 오렌지 레드 (용암석)
             );
             this.platforms.add(platform);
         });
@@ -353,32 +336,33 @@ class Stage2Scene extends Phaser.Scene {
     }
 
     createEnemies() {
-        // Ghost 배치 (6마리)
-        const ghostEnemyPositions = [
-            { x: 500, y: 400 },
-            { x: 1000, y: 370 },
-            { x: 1200, y: 270 },
-            { x: 1700, y: 330 },
-            { x: 2100, y: 430 },
-            { x: 2400, y: 310 }
+        // Bat (박쥐) 배치 (7마리)
+        const batPositions = [
+            { x: 550, y: 350 },
+            { x: 950, y: 260 },
+            { x: 1350, y: 380 },
+            { x: 1650, y: 300 },
+            { x: 2000, y: 230 },
+            { x: 2300, y: 310 },
+            { x: 2550, y: 360 }
         ];
 
-        ghostEnemyPositions.forEach(pos => {
-            const ghostEnemy = new GhostEnemy(this, pos.x, pos.y);
+        batPositions.forEach(pos => {
+            const bat = new BatEnemy(this, pos.x, pos.y);
 
             // 난이도 적용
             const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
-            ghostEnemy.maxHp = Math.round(ghostEnemy.maxHp * difficultyMultiplier.enemyHpMultiplier);
-            ghostEnemy.hp = ghostEnemy.maxHp;
-            ghostEnemy.damage = Math.round(ghostEnemy.damage * difficultyMultiplier.enemyDamageMultiplier);
-            ghostEnemy.sprite.setData('damage', ghostEnemy.damage);
+            bat.maxHp = Math.round(bat.maxHp * difficultyMultiplier.enemyHpMultiplier);
+            bat.hp = bat.maxHp;
+            bat.damage = Math.round(bat.damage * difficultyMultiplier.enemyDamageMultiplier);
+            bat.sprite.setData('damage', bat.damage);
 
-            this.enemyList.push(ghostEnemy);
-            this.enemies.add(ghostEnemy.sprite);
+            this.enemyList.push(bat);
+            this.enemies.add(bat.sprite);
         });
 
         if (CONSTANTS.GAME.DEBUG) {
-            console.log('Stage 2 적 생성 완료: Ghost', ghostEnemyPositions.length, '마리 (난이도:', window.difficultyManager.getDifficulty(), ')');
+            console.log('Stage 4 적 생성 완료: Bat', batPositions.length, '마리 (난이도:', window.difficultyManager.getDifficulty(), ')');
         }
     }
 
@@ -393,9 +377,9 @@ class Stage2Scene extends Phaser.Scene {
         this.physics.add.collider(window.player.sprite, this.platforms);
         this.physics.add.collider(window.player.sprite, this.groundGroup);
 
-        // 적과 플랫폼
-        this.physics.add.collider(this.enemies, this.platforms);
-        this.physics.add.collider(this.enemies, this.groundGroup);
+        // 적과 플랫폼 (박쥐는 공중 비행이므로 충돌 없음)
+        // this.physics.add.collider(this.enemies, this.platforms);
+        // this.physics.add.collider(this.enemies, this.groundGroup);
 
         // 플레이어와 적 충돌
         this.physics.add.overlap(
@@ -426,14 +410,14 @@ class Stage2Scene extends Phaser.Scene {
 
             enemyEntity.takeDamage(damage);
 
-            // 적 처치 시 점수 추가 (Ghost = bat 타입 점수)
+            // 적 처치 시 점수 추가
             if (willDie && !enemyEntity.isBoss) {
-                const score = window.scoreManager.addEnemyScore('bat');
+                const score = window.scoreManager.addEnemyScore('flying');
                 if (score > 0) {
                     this.registry.set('currentScore', window.scoreManager.getCurrentScore());
 
                     if (CONSTANTS.GAME.DEBUG) {
-                        console.log('Ghost 처치 점수:', score, '총점:', window.scoreManager.getCurrentScore());
+                        console.log('Bat 처치 점수:', score, '총점:', window.scoreManager.getCurrentScore());
                     }
                 }
             }
@@ -443,7 +427,6 @@ class Stage2Scene extends Phaser.Scene {
             }
         }
     }
-
 
     createUI() {
         // 스테이지 이름
@@ -583,7 +566,7 @@ class Stage2Scene extends Phaser.Scene {
         console.log('플레이어 사망!');
         this.time.delayedCall(500, () => {
             // 현재 스테이지 정보 저장 (다시하기 시 사용)
-            this.registry.set('lastStage', 'Stage2Scene');
+            this.registry.set('lastStage', 'Stage4Scene');
             this.scene.start('GameOverScene');
         });
     }
@@ -617,9 +600,9 @@ class Stage2Scene extends Phaser.Scene {
             console.log('spawnBoss() 호출됨');
         }
 
-        // window.RinoBoss 존재 여부 확인
-        if (typeof window.RinoBoss === 'undefined') {
-            console.error('RinoBoss 클래스를 찾을 수 없습니다!');
+        // window.BlueBirdBoss 존재 여부 확인
+        if (typeof window.BlueBirdBoss === 'undefined') {
+            console.error('BlueBirdBoss 클래스를 찾을 수 없습니다!');
             console.log('사용 가능한 보스 클래스:', Object.keys(window).filter(k => k.includes('Boss')));
             this.bossSpawned = false;
             return;
@@ -629,10 +612,10 @@ class Stage2Scene extends Phaser.Scene {
         const bossText = this.add.text(
             CONSTANTS.GAME.WIDTH / 2,
             CONSTANTS.GAME.HEIGHT / 2,
-            '⚠️ 보스 등장! ⚠️\nRAGING RHINO',
+            '⚠️ 보스 등장! ⚠️\nSKY GUARDIAN',
             {
                 fontSize: '48px',
-                fill: '#808080',
+                fill: '#00BFFF',
                 fontStyle: 'bold',
                 stroke: '#000',
                 strokeThickness: 6,
@@ -653,15 +636,15 @@ class Stage2Scene extends Phaser.Scene {
                 try {
                     bossText.destroy();
 
-                    // RinoBoss 참조를 먼저 저장
-                    const RinoBossClass = window.RinoBoss;
+                    // BlueBirdBoss 참조를 먼저 저장
+                    const BlueBirdBossClass = window.BlueBirdBoss;
 
-                    if (!RinoBossClass) {
-                        throw new Error('RinoBoss 클래스가 정의되지 않았습니다');
+                    if (!BlueBirdBossClass) {
+                        throw new Error('BlueBirdBoss 클래스가 정의되지 않았습니다');
                     }
 
-                    // 보스 생성 (보스 구역: x=2950 근처)
-                    this.boss = new RinoBossClass(this, 2950, 400);
+                    // 보스 생성 (보스 구역: x=2980 근처, 공중)
+                    this.boss = new BlueBirdBossClass(this, 2980, 280);
 
                     // 난이도 적용
                     const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
@@ -679,7 +662,7 @@ class Stage2Scene extends Phaser.Scene {
                     this.events.on('bossDefeated', this.handleBossDefeated, this);
 
                     if (CONSTANTS.GAME.DEBUG) {
-                        console.log('라이노 보스 생성 완료! HP:', this.boss.hp, '난이도:', window.difficultyManager.getDifficulty());
+                        console.log('BlueBird 보스 생성 완료! HP:', this.boss.hp, '난이도:', window.difficultyManager.getDifficulty());
                     }
                 } catch (error) {
                     console.error('보스 생성 중 오류:', error);
@@ -741,7 +724,7 @@ class Stage2Scene extends Phaser.Scene {
 
     pauseGame() {
         // 현재 씬을 레지스트리에 저장
-        this.registry.set('activeScene', 'Stage2Scene');
+        this.registry.set('activeScene', 'Stage4Scene');
 
         // 현재 씬 일시정지
         this.scene.pause();
@@ -868,12 +851,12 @@ class Stage2Scene extends Phaser.Scene {
             this.updateUI();
 
         } catch (error) {
-            console.error('Stage2Scene update 오류:', error);
+            console.error('Stage4Scene update 오류:', error);
         }
     }
 }
 
 // 전역에서 접근 가능하도록
 if (typeof window !== 'undefined') {
-    window.Stage2Scene = Stage2Scene;
+    window.Stage4Scene = Stage4Scene;
 }

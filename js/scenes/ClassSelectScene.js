@@ -333,21 +333,21 @@ class ClassSelectScene extends Phaser.Scene {
                 0.7
             );
 
-            // 상세 정보 패널
+            // 상세 정보 패널 (높이 증가)
             const panelWidth = 600;
-            const panelHeight = 500;
+            const panelHeight = 540;
             const panelX = CONSTANTS.GAME.WIDTH / 2;
             const panelY = CONSTANTS.GAME.HEIGHT / 2;
 
             const panel = this.add.rectangle(panelX, panelY, panelWidth, panelHeight, 0x1a1a2e);
             panel.setStrokeStyle(4, classData.color);
 
-            // 헤더 영역
-            const headerBg = this.add.rectangle(panelX, panelY - panelHeight / 2 + 40, panelWidth, 80, classData.color);
+            // 헤더 영역 (높이 줄임)
+            const headerBg = this.add.rectangle(panelX, panelY - panelHeight / 2 + 35, panelWidth, 70, classData.color);
 
             // 직업 이름
-            const className = this.add.text(panelX, panelY - panelHeight / 2 + 40, classData.name, {
-                fontSize: '36px',
+            const className = this.add.text(panelX, panelY - panelHeight / 2 + 35, classData.name, {
+                fontSize: '32px',
                 fill: '#ffffff',
                 fontStyle: 'bold',
                 stroke: '#000',
@@ -355,29 +355,29 @@ class ClassSelectScene extends Phaser.Scene {
             });
             className.setOrigin(0.5);
 
-            // 스크롤 가능한 컨텐츠 영역 (텍스트만)
-            let contentY = panelY - panelHeight / 2 + 100;
+            // 컨텐츠 영역 시작 위치
+            let contentY = panelY - panelHeight / 2 + 85;
 
-            // 자세한 설명
+            // 자세한 설명 (폰트 크기 줄임, 간격 줄임)
             const detailedDesc = this.add.text(panelX, contentY, classData.detailedDescription, {
-                fontSize: '14px',
+                fontSize: '13px',
                 fill: '#dddddd',
                 align: 'center',
                 wordWrap: { width: panelWidth - 60 },
-                lineSpacing: 4
+                lineSpacing: 3
             });
             detailedDesc.setOrigin(0.5, 0);
 
-            contentY += detailedDesc.height + 20;
+            contentY += detailedDesc.height + 15;
 
             // 스탯 정보
             const statsTitle = this.add.text(panelX - panelWidth / 2 + 30, contentY, '[ 특성 ]', {
-                fontSize: '16px',
+                fontSize: '15px',
                 fill: classData.color,
                 fontStyle: 'bold'
             });
 
-            contentY += 25;
+            contentY += 22;
 
             let statsText = '';
             for (const [key, value] of Object.entries(classData.stats)) {
@@ -385,28 +385,28 @@ class ClassSelectScene extends Phaser.Scene {
             }
 
             const stats = this.add.text(panelX - panelWidth / 2 + 30, contentY, statsText, {
-                fontSize: '13px',
+                fontSize: '12px',
                 fill: '#cccccc',
-                lineSpacing: 3
+                lineSpacing: 2
             });
 
-            contentY += stats.height + 20;
+            contentY += stats.height + 12;
 
             // 스킬 정보
             const skillsTitle = this.add.text(panelX - panelWidth / 2 + 30, contentY, '[ 스킬 상세 ]', {
-                fontSize: '16px',
+                fontSize: '15px',
                 fill: classData.color,
                 fontStyle: 'bold'
             });
 
-            contentY += 25;
+            contentY += 22;
 
             const skillsText = classData.skills.join('\n');
             const skills = this.add.text(panelX - panelWidth / 2 + 30, contentY, skillsText, {
-                fontSize: '12px',
+                fontSize: '11px',
                 fill: '#aaaaaa',
                 align: 'left',
-                lineSpacing: 2,
+                lineSpacing: 1,
                 wordWrap: { width: panelWidth - 60 }
             });
 
