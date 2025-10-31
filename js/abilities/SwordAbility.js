@@ -42,52 +42,61 @@ class SwordAbility extends AbilityBase {
 
     // 1단 공격
     performSlash1() {
+        // 공격 시작 시 짧은 무적 프레임
+        this.giveAttackInvincibility();
+
         this.createMeleeHitbox(
-            30, 0, // 위치 (플레이어 앞)
-            40, 30, // 크기
+            40, 0, // 위치 (30 → 40, 더 앞으로)
+            55, 40, // 크기 (40x30 → 55x40, 확장)
             this.config.BASIC_DAMAGE,
             150 // 지속 시간
         );
 
-        // 플레이어를 약간 앞으로 이동
+        // 플레이어를 더 빠르게 앞으로 이동
         if (this.owner.facingRight) {
-            this.owner.sprite.body.setVelocityX(100);
+            this.owner.sprite.body.setVelocityX(150); // 100 → 150
         } else {
-            this.owner.sprite.body.setVelocityX(-100);
+            this.owner.sprite.body.setVelocityX(-150);
         }
     }
 
     // 2단 공격
     performSlash2() {
+        // 공격 시작 시 짧은 무적 프레임
+        this.giveAttackInvincibility();
+
         this.createMeleeHitbox(
-            35, -5, // 위치
-            45, 35, // 더 큰 범위
+            45, -5, // 위치 (35 → 45, 더 앞으로)
+            65, 45, // 크기 (45x35 → 65x45, 확장)
             this.config.BASIC_DAMAGE + 2,
             150
         );
 
-        // 약간 더 빠르게 이동
+        // 더 빠르게 이동
         if (this.owner.facingRight) {
-            this.owner.sprite.body.setVelocityX(120);
+            this.owner.sprite.body.setVelocityX(180); // 120 → 180
         } else {
-            this.owner.sprite.body.setVelocityX(-120);
+            this.owner.sprite.body.setVelocityX(-180);
         }
     }
 
     // 3단 공격 (피니시)
     performSlash3() {
+        // 공격 시작 시 짧은 무적 프레임
+        this.giveAttackInvincibility();
+
         this.createMeleeHitbox(
-            40, 0, // 위치
-            50, 40, // 가장 큰 범위
+            55, 0, // 위치 (40 → 55, 더 앞으로)
+            80, 50, // 크기 (50x40 → 80x50, 확장)
             this.config.BASIC_DAMAGE + 5,
             200
         );
 
-        // 강한 전진
+        // 매우 강한 전진
         if (this.owner.facingRight) {
-            this.owner.sprite.body.setVelocityX(150);
+            this.owner.sprite.body.setVelocityX(220); // 150 → 220
         } else {
-            this.owner.sprite.body.setVelocityX(-150);
+            this.owner.sprite.body.setVelocityX(-220);
         }
 
         // 이펙트 (회전 공격 느낌)
@@ -98,6 +107,11 @@ class SwordAbility extends AbilityBase {
             onComplete: () => {
                 this.owner.sprite.angle = 0;
             }
+        });
+
+        // 3단 콤보 완성: 검기 발사
+        this.scene.time.delayedCall(100, () => {
+            this.fireSwordBeam();
         });
     }
 
@@ -183,6 +197,80 @@ class SwordAbility extends AbilityBase {
         if (CONSTANTS.GAME.DEBUG) {
             console.log('검술: 돌진 베기');
         }
+    }
+
+    // 검기 발사 (3단 콤보 완성 보상)
+    fireSwordBeam() {
+        if (!this.owner) return;
+
+        const direction = this.owner.facingRight ? 1 : -1;
+        const beamSpeed = 500;
+        const beamDistance = 150;
+        const beamDamage = Math.floor((this.config.BASIC_DAMAGE + 5) * 0.6); // 3단 데미지의 60%
+
+        // 검기 이펙트 생성
+        const beam = this.scene.add.rectangle(
+            this.owner.sprite.x + (30 * direction),
+            this.owner.sprite.y,
+            20, 30,
+            0xFFFF00,
+            0.8
+        );
+
+        // 검기에 물리 바디 추가
+        this.scene.physics.add.existing(beam);
+        beam.body.setAllowGravity(false);
+        beam.body.setVelocityX(beamSpeed * direction);
+
+        // 검기 데이터 저장
+        beam.setData('damage', beamDamage);
+        beam.setData('type', 'playerProjectile');
+        beam.setData('hitEnemies', []); // 이미 맞은 적 추적
+
+        // 검기 반짝임 효과
+        this.scene.tweens.add({
+            targets: beam,
+            alpha: 0.4,
+            duration: 100,
+            yoyo: true,
+            repeat: -1
+        });
+
+        // 일정 거리 이동 후 제거
+        this.scene.time.delayedCall(beamDistance / beamSpeed * 1000, () => {
+            if (beam && beam.active) {
+                // 검기 소멸 이펙트
+                const flash = this.scene.add.circle(beam.x, beam.y, 15, 0xFFFF00, 0.6);
+                this.scene.tweens.add({
+                    targets: flash,
+                    alpha: 0,
+                    scale: 2,
+                    duration: 200,
+                    onComplete: () => flash.destroy()
+                });
+                beam.destroy();
+            }
+        });
+
+        // 적과 충돌 처리는 각 Stage Scene의 update에서 처리됨
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('검술: 검기 발사');
+        }
+    }
+
+    // 공격 시작 시 짧은 무적 프레임 (0.15초)
+    giveAttackInvincibility() {
+        if (!this.owner) return;
+
+        this.owner.isInvincible = true;
+        this.owner.sprite.setAlpha(0.9);
+
+        this.scene.time.delayedCall(150, () => {
+            if (this.owner) {
+                this.owner.isInvincible = false;
+                this.owner.sprite.setAlpha(1);
+            }
+        });
     }
 
     // 능력 교체 시 호출

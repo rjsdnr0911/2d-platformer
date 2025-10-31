@@ -114,31 +114,44 @@ class Stage4Scene extends Phaser.Scene {
             // 플레이어 생성
             window.player = new Player(this, 100, 400);
 
-            // 선택된 직업 능력 장착
-            const selectedClass = this.registry.get('selectedClass') || 'warrior';
-            let ability = null;
+            // 게임 모드에 따라 능력 장착
+            const selectedClass = this.registry.get('selectedClass') || 'normal';
 
-            switch (selectedClass) {
-                case 'warrior':
-                    ability = new SwordAbility(this);
-                    break;
-                case 'wizard':
-                    ability = new MagicAbility(this);
-                    break;
-                case 'weaponmaster':
-                    ability = new WeaponMasterAbility(this);
-                    break;
-                case 'fighter':
-                    ability = new FighterAbility(this);
-                    break;
-                default:
-                    ability = new SwordAbility(this);
-            }
+            if (selectedClass === 'normal') {
+                // 일반 모드: 근접/마법 전환 (둘 다 장착)
+                const swordAbility = new SwordAbility(this);
+                const magicAbility = new MagicAbility(this);
 
-            window.player.equipAbility(ability, 0);
+                window.player.equipAbility(swordAbility, 0);
+                window.player.equipAbility(magicAbility, 1);
+                window.player.setCurrentAbilityIndex(0); // 시작은 근접전사
 
-            if (CONSTANTS.GAME.DEBUG) {
-                console.log('선택된 직업:', selectedClass, '능력:', ability.name);
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log('일반 모드: 근접전사/마법사 전환 가능');
+                }
+            } else {
+                // 캐릭터 선택 모드: 선택한 직업만
+                let ability = null;
+
+                switch (selectedClass) {
+                    case 'warrior':
+                        ability = new SwordAbility(this);
+                        break;
+                    case 'wizard':
+                        ability = new MagicAbility(this);
+                        break;
+                    case 'weaponmaster':
+                        ability = new WeaponMasterAbility(this);
+                        break;
+                    default:
+                        ability = new SwordAbility(this);
+                }
+
+                window.player.equipAbility(ability, 0);
+
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log('캐릭터 선택 모드:', selectedClass, '능력:', ability.name);
+                }
             }
 
             // 카메라 설정

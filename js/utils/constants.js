@@ -5,7 +5,7 @@ const CONSTANTS = {
         WIDTH: 800,
         HEIGHT: 600,
         GRAVITY: 800,
-        DEBUG: true
+        DEBUG: false
     },
 
     // 월드 설정
@@ -36,9 +36,9 @@ const CONSTANTS = {
     // 능력 설정
     ABILITIES: {
         SWORD: {
-            BASIC_DAMAGE: 10,
-            STRONG_DAMAGE: 25,
-            SKILL_DAMAGE: 30,
+            BASIC_DAMAGE: 13, // 10 → 13
+            STRONG_DAMAGE: 32, // 25 → 32
+            SKILL_DAMAGE: 45, // 30 → 45
             BASIC_COOLDOWN: 0,
             STRONG_COOLDOWN: 1000,
             SKILL_COOLDOWN: 3000,

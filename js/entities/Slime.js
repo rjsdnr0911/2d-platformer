@@ -35,6 +35,31 @@ class Slime extends Enemy {
         if (!this.isAlive || this.isHit) return;
         if (!this.sprite || !this.sprite.body) return;
 
+        // 맵 경계 강제 체크 (맵 밖으로 나가지 못하도록)
+        const worldBounds = {
+            left: 0,
+            right: CONSTANTS.WORLD.WIDTH,
+            top: 0,
+            bottom: CONSTANTS.WORLD.HEIGHT
+        };
+
+        if (this.sprite.x < worldBounds.left + 20) {
+            this.sprite.x = worldBounds.left + 20;
+            this.direction = 1; // 오른쪽으로 방향 전환
+        } else if (this.sprite.x > worldBounds.right - 20) {
+            this.sprite.x = worldBounds.right - 20;
+            this.direction = -1; // 왼쪽으로 방향 전환
+        }
+
+        // 바닥 아래로 떨어진 경우 제거
+        if (this.sprite.y > worldBounds.bottom) {
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log('슬라임이 맵 아래로 떨어짐, 제거');
+            }
+            this.die();
+            return;
+        }
+
         // 이동 범위 체크
         const distanceFromStart = this.sprite.x - this.startX;
 

@@ -5,8 +5,11 @@ class ItemBase {
         this.config = config;
         this.isActive = true;
 
+        // 아이템이 바닥을 뚫고 떨어지지 않도록 생성 위치를 안전하게 조정
+        const safeY = Math.min(y, CONSTANTS.WORLD.HEIGHT - 100); // 바닥에서 최소 100px 위
+
         // 아이템 스프라이트 생성
-        this.sprite = scene.add.circle(x, y, 12, config.color, 0.8);
+        this.sprite = scene.add.circle(x, safeY, 12, config.color, 0.8);
         scene.physics.add.existing(this.sprite);
         this.sprite.body.setAllowGravity(true);
         this.sprite.body.setBounce(0.3);
@@ -17,11 +20,19 @@ class ItemBase {
         this.sprite.setData('type', 'item');
         this.sprite.setData('itemType', config.type);
 
-        // 떨어지는 효과
+        // 떨어지는 효과 (속도 감소 - 바닥 뚫림 방지)
         this.sprite.body.setVelocity(
             Phaser.Math.Between(-50, 50),
-            -150
+            -100  // -150에서 -100으로 감소
         );
+
+        // 플랫폼/바닥과 즉시 충돌 설정 (바닥 아래로 떨어지는 것 방지)
+        if (scene.platforms) {
+            scene.physics.add.collider(this.sprite, scene.platforms);
+        }
+        if (scene.groundGroup) {
+            scene.physics.add.collider(this.sprite, scene.groundGroup);
+        }
 
         // 깜빡임 효과
         this.scene.tweens.add({
@@ -33,7 +44,7 @@ class ItemBase {
         });
 
         // 아이콘 텍스트 (아이템 위에 표시)
-        this.iconText = scene.add.text(x, y - 20, config.icon, {
+        this.iconText = scene.add.text(x, safeY - 20, config.icon, {
             fontSize: '20px'
         });
         this.iconText.setOrigin(0.5);

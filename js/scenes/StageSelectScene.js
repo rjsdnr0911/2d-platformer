@@ -49,13 +49,6 @@ class StageSelectScene extends Phaser.Scene {
                     description: '강력한 마법이 소용돌이치는 탑\n대마법사를 격파하라!',
                     color: 0x9C27B0,
                     boss: '아크메이지'
-                },
-                {
-                    number: 4,
-                    name: 'Stage 4: 화산 동굴',
-                    description: '용암이 끓어오르는 위험한 동굴\n하늘의 수호자를 격파하라!',
-                    color: 0xFF4500,
-                    boss: '스카이 가디언'
                 }
             ];
 
@@ -238,8 +231,22 @@ class StageSelectScene extends Phaser.Scene {
         // 선택된 스테이지 저장
         this.registry.set('selectedStage', stageNumber);
 
-        // 직업 선택 화면으로 이동
-        this.scene.start('ClassSelectScene');
+        // 게임 모드 확인
+        const gameMode = this.registry.get('gameMode') || 'normal';
+
+        if (gameMode === 'classSelect') {
+            // 캐릭터 선택 모드: 직업 선택 화면으로
+            this.scene.start('ClassSelectScene');
+        } else {
+            // 일반 모드: 바로 스테이지로 (근접/마법 전환)
+            this.registry.set('selectedClass', 'normal'); // 일반 모드 표시
+
+            // 스테이지 시작 시간 기록
+            this.registry.set('stageStartTime', Date.now());
+
+            const stageKey = `Stage${stageNumber}Scene`;
+            this.scene.start(stageKey);
+        }
     }
 
     formatTime(ms) {

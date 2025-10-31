@@ -89,6 +89,12 @@ class Player {
         return this.abilities[this.currentAbilityIndex];
     }
 
+    setCurrentAbilityIndex(index) {
+        if (index >= 0 && index < this.abilities.length) {
+            this.currentAbilityIndex = index;
+        }
+    }
+
     swapAbility() {
         const oldIndex = this.currentAbilityIndex;
         this.currentAbilityIndex = (this.currentAbilityIndex + 1) % 2;
@@ -98,10 +104,95 @@ class Player {
         if (newAbility) {
             newAbility.onSwapIn();
 
+            // 능력 전환 UI 표시
+            this.showAbilitySwapUI(newAbility.name);
+
             if (CONSTANTS.GAME.DEBUG) {
                 console.log('능력 교체:', newAbility.name);
             }
         }
+    }
+
+    // 능력 전환 UI 표시
+    showAbilitySwapUI(abilityName) {
+        // 아이콘 색상 결정
+        let iconColor = 0xFFFFFF;
+        let iconText = '⚔️';
+
+        if (abilityName === '검술' || abilityName.includes('전사')) {
+            iconColor = 0xFF6B6B;
+            iconText = '⚔️';
+        } else if (abilityName === '마법' || abilityName.includes('마법')) {
+            iconColor = 0x8844FF;
+            iconText = '✨';
+        } else if (abilityName === '해머') {
+            iconColor = 0xFF8800;
+            iconText = '🔨';
+        } else if (abilityName === '활') {
+            iconColor = 0x44FF44;
+            iconText = '🏹';
+        }
+
+        // UI 컨테이너 생성 (화면 중앙 하단)
+        const uiX = CONSTANTS.GAME.WIDTH / 2;
+        const uiY = CONSTANTS.GAME.HEIGHT - 100;
+
+        // 배경 패널
+        const panel = this.scene.add.rectangle(uiX, uiY, 200, 60, 0x000000, 0.7);
+        panel.setScrollFactor(0); // 카메라에 고정
+        panel.setDepth(1000);
+
+        // 아이콘 텍스트
+        const icon = this.scene.add.text(uiX - 70, uiY, iconText, {
+            fontSize: '32px'
+        });
+        icon.setOrigin(0.5);
+        icon.setScrollFactor(0);
+        icon.setDepth(1001);
+
+        // 능력 이름
+        const nameText = this.scene.add.text(uiX + 20, uiY, abilityName, {
+            fontSize: '24px',
+            fill: `#${iconColor.toString(16).padStart(6, '0')}`,
+            fontStyle: 'bold',
+            stroke: '#000',
+            strokeThickness: 4
+        });
+        nameText.setOrigin(0.5);
+        nameText.setScrollFactor(0);
+        nameText.setDepth(1001);
+
+        // 페이드 인 애니메이션
+        panel.setAlpha(0);
+        icon.setAlpha(0);
+        nameText.setAlpha(0);
+        panel.setScale(0.8);
+        icon.setScale(0.8);
+        nameText.setScale(0.8);
+
+        this.scene.tweens.add({
+            targets: [panel, icon, nameText],
+            alpha: 1,
+            scale: 1,
+            duration: 150,
+            ease: 'Back.easeOut'
+        });
+
+        // 1초 후 페이드 아웃 및 제거
+        this.scene.time.delayedCall(1000, () => {
+            this.scene.tweens.add({
+                targets: [panel, icon, nameText],
+                alpha: 0,
+                y: uiY + 20,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => {
+                    panel.destroy();
+                    icon.destroy();
+                    nameText.destroy();
+                }
+            });
+        });
     }
 
     move(direction) {
@@ -257,7 +348,14 @@ class Player {
     takeDamage(damage) {
         if (!this.isAlive || this.isInvincible) return;
 
-        const actualDamage = Math.ceil(damage * (1 - this.damageReduction));
+        // 근접 캐릭터 방어력 버프 (검술 능력 사용 시 30% 피해 감소)
+        let meleeDefenseBonus = 0;
+        const currentAbility = this.getCurrentAbility();
+        if (currentAbility && currentAbility.name === '검술') {
+            meleeDefenseBonus = 0.3; // 30% 감소
+        }
+
+        const actualDamage = Math.ceil(damage * (1 - this.damageReduction - meleeDefenseBonus));
         this.hp -= actualDamage;
 
         if (this.hp <= 0) {
@@ -269,7 +367,7 @@ class Player {
         }
 
         if (CONSTANTS.GAME.DEBUG) {
-            console.log(`플레이어 피격: ${actualDamage} 데미지, 남은 HP: ${this.hp}`);
+            console.log(`플레이어 피격: ${actualDamage} 데미지 (방어: ${(this.damageReduction + meleeDefenseBonus) * 100}%), 남은 HP: ${this.hp}`);
         }
     }
 
@@ -364,6 +462,47 @@ class Player {
 
         if (CONSTANTS.GAME.DEBUG) {
             console.log(`체력 회복: +${amount}, 현재 HP: ${this.hp}`);
+        }
+    }
+
+    // 흡혈 효과 (근접 캐릭터 전용)
+    vampiricHeal(amount) {
+        const healAmount = Math.min(amount, this.maxHp - this.hp);
+        if (healAmount <= 0) return;
+
+        this.hp += healAmount;
+
+        // 흡혈 효과 시각화 (빨간 하트 파티클)
+        for (let i = 0; i < 3; i++) {
+            this.scene.time.delayedCall(i * 100, () => {
+                if (!this.sprite || !this.sprite.active) return;
+
+                const heart = this.scene.add.text(
+                    this.sprite.x + (Math.random() - 0.5) * 20,
+                    this.sprite.y - 20,
+                    '❤️',
+                    { fontSize: '16px' }
+                );
+
+                this.scene.physics.add.existing(heart);
+                heart.body.setAllowGravity(false);
+                heart.body.setVelocityY(-80);
+
+                this.scene.tweens.add({
+                    targets: heart,
+                    alpha: 0,
+                    y: heart.y - 40,
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => {
+                        heart.destroy();
+                    }
+                });
+            });
+        }
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log(`흡혈: +${healAmount}HP`);
         }
     }
 
@@ -486,9 +625,19 @@ class Player {
                 this.specialSkill();
             }
 
-            // 웨폰마스터 폼 전환 (Q/E 키)
+            // Q/E 키 처리 (모드에 따라 다른 동작)
             const ability = this.getCurrentAbility();
-            if (ability && ability.name === '웨폰마스터') {
+
+            // 일반 모드: 둘 다 능력이 장착되어 있으면 Q/E로 능력 전환
+            if (this.abilities[0] && this.abilities[1]) {
+                // 일반 모드 (근접전사 <-> 마법사 전환)
+                if (Phaser.Input.Keyboard.JustDown(keys.abilitySwap1) ||
+                    Phaser.Input.Keyboard.JustDown(keys.abilitySwap2)) {
+                    this.swapAbility();
+                }
+            }
+            // 캐릭터 선택 모드: 웨폰마스터만 Q/E로 폼 전환
+            else if (ability && ability.name === '웨폰마스터') {
                 if (Phaser.Input.Keyboard.JustDown(keys.abilitySwap1)) {
                     ability.switchForm('left');
                 }

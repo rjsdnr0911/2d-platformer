@@ -102,6 +102,7 @@ class Stage1Scene extends Phaser.Scene {
             // 미니맵 시스템
             this.minimapSystem = null;
 
+
             // 터치 컨트롤 (모바일용)
             this.touchControls = null;
             this.isMobile = MobileDetector.isMobile();
@@ -122,31 +123,40 @@ class Stage1Scene extends Phaser.Scene {
             // 플레이어 생성
             window.player = new Player(this, 100, 400);
 
-            // 선택된 직업 능력 장착
-            const selectedClass = this.registry.get('selectedClass') || 'warrior';
-            let ability = null;
+            // 게임 모드에 따라 능력 장착
+            const selectedClass = this.registry.get('selectedClass') || 'normal';
 
-            switch (selectedClass) {
-                case 'warrior':
-                    ability = new SwordAbility(this);
-                    break;
-                case 'wizard':
-                    ability = new MagicAbility(this);
-                    break;
-                case 'weaponmaster':
-                    ability = new WeaponMasterAbility(this);
-                    break;
-                case 'fighter':
-                    ability = new FighterAbility(this);
-                    break;
-                default:
-                    ability = new SwordAbility(this);
-            }
+            if (selectedClass === 'normal') {
+                // 일반 모드: 근접/마법 전환 (둘 다 장착)
+                const swordAbility = new SwordAbility(this);
+                const magicAbility = new MagicAbility(this);
 
-            window.player.equipAbility(ability, 0);
+                window.player.equipAbility(swordAbility, 0);
+                window.player.equipAbility(magicAbility, 1);
+                window.player.setCurrentAbilityIndex(0); // 시작은 근접전사
 
-            if (CONSTANTS.GAME.DEBUG) {
-                console.log('선택된 직업:', selectedClass, '능력:', ability.name);
+                console.log('일반 모드: 근접전사/마법사 전환 가능');
+            } else {
+                // 캐릭터 선택 모드: 선택한 직업만
+                let ability = null;
+
+                switch (selectedClass) {
+                    case 'warrior':
+                        ability = new SwordAbility(this);
+                        break;
+                    case 'wizard':
+                        ability = new MagicAbility(this);
+                        break;
+                    case 'weaponmaster':
+                        ability = new WeaponMasterAbility(this);
+                        break;
+                    default:
+                        ability = new SwordAbility(this);
+                }
+
+                window.player.equipAbility(ability, 0);
+
+                console.log('캐릭터 선택 모드:', selectedClass, '능력:', ability.name);
             }
 
             // 카메라 설정
@@ -183,6 +193,7 @@ class Stage1Scene extends Phaser.Scene {
 
             // 미니맵 시스템 초기화
             this.minimapSystem = new MinimapSystem(this, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
+
 
             // 터치 컨트롤 초기화 (모바일에서만)
             if (this.isMobile) {
@@ -420,7 +431,7 @@ class Stage1Scene extends Phaser.Scene {
 
             enemyEntity.takeDamage(finalDamage);
 
-            // 적 처치 시 점수 추가
+            // 적 처치 시 점수 추가 & 근접 캐릭터 흡혈
             if (willDie) {
                 const score = window.scoreManager.addEnemyScore('slime');
                 if (score > 0) {
@@ -429,6 +440,12 @@ class Stage1Scene extends Phaser.Scene {
                     if (CONSTANTS.GAME.DEBUG) {
                         console.log('슬라임 처치 점수:', score, '총점:', window.scoreManager.getCurrentScore());
                     }
+                }
+
+                // 근접 캐릭터 흡혈 (검술 능력만 해당)
+                const currentAbility = window.player.getCurrentAbility();
+                if (currentAbility && currentAbility.name === '검술') {
+                    window.player.vampiricHeal(3);
                 }
             }
 
@@ -532,7 +549,7 @@ class Stage1Scene extends Phaser.Scene {
         });
         this.abilityText.setScrollFactor(0);
 
-        // 쿨타임 표시
+        // 쿨타임 표시 (초 단위)
         this.cooldownText = this.add.text(16, 114, '', {
             fontSize: '14px',
             fill: '#ffff00',
@@ -550,11 +567,23 @@ class Stage1Scene extends Phaser.Scene {
         });
         this.passiveItemsText.setScrollFactor(0);
 
-        // 조작법 (간략화)
+        // 조작법 (Q/E 전환 추가)
+        // 게임 모드에 따라 다른 가이드 표시
+        const selectedClass = this.registry.get('selectedClass') || 'normal';
+        let controlsGuide = '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격';
+
+        if (selectedClass === 'normal') {
+            // 일반 모드: 직업 전환 가능
+            controlsGuide += ' | Q/E 전환';
+        } else if (selectedClass === 'weaponmaster') {
+            // 웨폰마스터: 폼 전환
+            controlsGuide += ' | Q/E 폼';
+        }
+
         const controlsText = this.add.text(
             CONSTANTS.GAME.WIDTH - 16,
             16,
-            '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격',
+            controlsGuide,
             {
                 fontSize: '12px',
                 fill: '#fff',
@@ -595,11 +624,24 @@ class Stage1Scene extends Phaser.Scene {
         if (window.player && this.cooldownText) {
             const ability = window.player.getCurrentAbility();
             if (ability) {
-                const basicReady = ability.canUseBasicAttack() ? '●' : '○';
-                const strongReady = ability.canUseStrongAttack() ? '●' : '○';
-                const skillReady = ability.canUseSkill() ? '●' : '○';
+                // 쿨타임 적용 (패시브 아이템 쿨다운 감소 적용)
+                const cooldownReduction = window.player.cooldownReduction || 0;
+                const basicCooldown = ability.config.BASIC_COOLDOWN * (1 - cooldownReduction);
+                const strongCooldown = ability.config.STRONG_COOLDOWN * (1 - cooldownReduction);
+                const skillCooldown = ability.config.SKILL_COOLDOWN * (1 - cooldownReduction);
 
-                this.cooldownText.setText(`공격: ${basicReady} | 강공격: ${strongReady} | 스킬: ${skillReady}`);
+                // 남은 쿨타임 계산 (초 단위)
+                const currentTime = this.time.now;
+                const basicRemaining = Math.max(0, (basicCooldown - (currentTime - ability.lastBasicAttackTime)) / 1000);
+                const strongRemaining = Math.max(0, (strongCooldown - (currentTime - ability.lastStrongAttackTime)) / 1000);
+                const skillRemaining = Math.max(0, (skillCooldown - (currentTime - ability.lastSkillTime)) / 1000);
+
+                // 쿨타임 표시 (0이면 ●, 아니면 초 표시)
+                const basicText = basicRemaining > 0 ? basicRemaining.toFixed(1) + 's' : '●';
+                const strongText = strongRemaining > 0 ? strongRemaining.toFixed(1) + 's' : '●';
+                const skillText = skillRemaining > 0 ? skillRemaining.toFixed(1) + 's' : '●';
+
+                this.cooldownText.setText(`Z: ${basicText} | X: ${strongText} | C: ${skillText}`);
             } else {
                 this.cooldownText.setText('');
             }
@@ -919,6 +961,7 @@ class Stage1Scene extends Phaser.Scene {
             if (this.minimapSystem) {
                 this.minimapSystem.update(window.player, this.enemyList);
             }
+
 
         } catch (error) {
             console.error('Stage1Scene update 오류:', error);

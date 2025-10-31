@@ -39,26 +39,40 @@ class MainMenuScene extends Phaser.Scene {
             // 난이도 선택
             this.createDifficultyButtons();
 
-            // 시작 버튼
-            const startButton = this.createButton(
+            // 일반 게임 시작 버튼
+            const normalButton = this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                360,
-                '게임 시작',
+                350,
+                '일반 게임 시작',
                 () => {
+                    // 일반 모드: 근접전사/마법사 전환
+                    this.registry.set('gameMode', 'normal');
                     this.scene.start('StageSelectScene');
                 }
             );
 
-            // 최고 점수 표시
+            // 캐릭터 선택 모드 버튼
+            const classSelectButton = this.createButton(
+                CONSTANTS.GAME.WIDTH / 2,
+                415,
+                '캐릭터 선택 모드',
+                () => {
+                    // 캐릭터 선택 모드: 직업 선택 후 플레이
+                    this.registry.set('gameMode', 'classSelect');
+                    this.scene.start('StageSelectScene');
+                }
+            );
+
+            // 최고 점수 표시 (버튼 아래로 이동)
             this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                440,
+                495,
                 '',
                 {
-                    fontSize: '16px',
+                    fontSize: '14px',
                     fill: '#fff',
                     backgroundColor: '#00000088',
-                    padding: { x: 15, y: 10 },
+                    padding: { x: 12, y: 8 },
                     align: 'center'
                 }
             );
