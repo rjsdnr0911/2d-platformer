@@ -22,6 +22,12 @@ class SpeedBoots extends ItemBase {
                 player.speedBonus = (player.speedBonus || 0) + speedBonus;
             }
         });
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getPassiveItemDescription('speed_boots');
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -46,6 +52,12 @@ class WingedBoots extends ItemBase {
                 player.jumpBonus = (player.jumpBonus || 0) + 0.4;
             }
         });
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getPassiveItemDescription('winged_boots');
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -70,6 +82,12 @@ class TimeClock extends ItemBase {
                 player.cooldownReduction = (player.cooldownReduction || 0) + 0.2;
             }
         });
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getPassiveItemDescription('time_clock');
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -94,6 +112,12 @@ class IronShield extends ItemBase {
                 player.damageReduction = (player.damageReduction || 0) + 0.3;
             }
         });
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getPassiveItemDescription('iron_shield');
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -119,6 +143,12 @@ class HealthRing extends ItemBase {
                 player.hp = Math.min(player.hp + 20, player.maxHp); // 현재 HP도 20 증가
             }
         });
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getPassiveItemDescription('health_ring');
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -143,6 +173,12 @@ class DashGem extends ItemBase {
                 player.dashCooldownReduction = (player.dashCooldownReduction || 0) + 0.4;
             }
         });
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getPassiveItemDescription('dash_gem');
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -167,6 +203,12 @@ class PhantomCloak extends ItemBase {
                 player.invincibilityBonus = (player.invincibilityBonus || 0) + 0.5;
             }
         });
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getPassiveItemDescription('phantom_cloak');
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 

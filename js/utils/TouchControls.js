@@ -51,10 +51,16 @@ class TouchControls {
     }
 
     createUI() {
-        const buttonAlpha = 0.6;
-        const buttonSize = 55;
-        const smallButtonSize = 45;
-        const margin = 16;
+        // 버튼 설정 (크기 확대, 투명도 조절)
+        const buttonAlpha = 0.5; // 기본 투명도 (더 투명하게)
+        const buttonPressedAlpha = 0.85; // 눌렸을 때 투명도
+        const buttonSize = 70; // 55 → 70 (27% 확대)
+        const smallButtonSize = 58; // 45 → 58 (29% 확대)
+        const margin = 20; // 16 → 20 (여유 공간 증가)
+
+        // 투명도 설정 저장 (나중에 사용)
+        this.buttonAlpha = buttonAlpha;
+        this.buttonPressedAlpha = buttonPressedAlpha;
 
         // === 좌측: 이동 버튼 ===
         // 왼쪽 버튼
@@ -69,7 +75,7 @@ class TouchControls {
 
         this.buttonTexts.left = this.scene.add.text(
             this.buttons.left.x, this.buttons.left.y, '◀',
-            { fontSize: '28px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '36px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.left.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -85,7 +91,7 @@ class TouchControls {
 
         this.buttonTexts.right = this.scene.add.text(
             this.buttons.right.x, this.buttons.right.y, '▶',
-            { fontSize: '28px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '36px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.right.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -102,7 +108,7 @@ class TouchControls {
 
         this.buttonTexts.jump = this.scene.add.text(
             this.buttons.jump.x, this.buttons.jump.y, 'UP',
-            { fontSize: '15px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '19px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.jump.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -118,7 +124,7 @@ class TouchControls {
 
         this.buttonTexts.dash = this.scene.add.text(
             this.buttons.dash.x, this.buttons.dash.y, 'DASH',
-            { fontSize: '12px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '15px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.dash.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -137,7 +143,7 @@ class TouchControls {
 
         this.buttonTexts.basicAttack = this.scene.add.text(
             this.buttons.basicAttack.x, this.buttons.basicAttack.y, 'Z',
-            { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.basicAttack.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -153,7 +159,7 @@ class TouchControls {
 
         this.buttonTexts.strongAttack = this.scene.add.text(
             this.buttons.strongAttack.x, this.buttons.strongAttack.y, 'X',
-            { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.strongAttack.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -172,7 +178,7 @@ class TouchControls {
 
         this.buttonTexts.skill = this.scene.add.text(
             this.buttons.skill.x, this.buttons.skill.y, 'C',
-            { fontSize: '18px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.skill.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -191,7 +197,7 @@ class TouchControls {
 
         this.buttonTexts.abilitySwap1 = this.scene.add.text(
             this.buttons.abilitySwap1.x, this.buttons.abilitySwap1.y, 'Q',
-            { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '22px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.abilitySwap1.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -207,7 +213,7 @@ class TouchControls {
 
         this.buttonTexts.abilitySwap2 = this.scene.add.text(
             this.buttons.abilitySwap2.x, this.buttons.abilitySwap2.y, 'E',
-            { fontSize: '16px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '22px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.abilitySwap2.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
     }
@@ -241,14 +247,14 @@ class TouchControls {
                 if (this.activePointers[key] === null || this.activePointers[key] === pointer.id) {
                     this.inputs[key] = true;
                     this.activePointers[key] = pointer.id;
-                    button.setAlpha(0.9);
+                    button.setAlpha(this.buttonPressedAlpha);
                 }
             } else {
                 // 이 포인터가 버튼을 누르고 있었는데 영역 밖으로 나간 경우
                 if (this.activePointers[key] === pointer.id) {
                     this.inputs[key] = false;
                     this.activePointers[key] = null;
-                    button.setAlpha(0.6);
+                    button.setAlpha(this.buttonAlpha);
                 }
             }
         });
@@ -260,7 +266,7 @@ class TouchControls {
             if (this.activePointers[key] === pointer.id) {
                 this.inputs[key] = false;
                 this.activePointers[key] = null;
-                this.buttons[key].setAlpha(0.6);
+                this.buttons[key].setAlpha(this.buttonAlpha);
             }
         });
     }

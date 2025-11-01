@@ -18,7 +18,8 @@ class ClassSelectScene extends Phaser.Scene {
             this.stageNames = {
                 1: 'Stage 1: 슬라임 숲',
                 2: 'Stage 2: 폐허의 성',
-                3: 'Stage 3: 마법 탑'
+                3: 'Stage 3: 마법 탑',
+                'BossRush': '🔥 BOSS RUSH MODE 🔥'
             };
 
             // 직업 데이터 (확장 가능하도록 자세한 정보 추가)
@@ -459,10 +460,16 @@ class ClassSelectScene extends Phaser.Scene {
             this.registry.set('stageStartTime', Date.now());
             this.registry.set('currentStage', this.selectedStage);
 
-            // 스테이지 시작
-            const stageKey = `Stage${this.selectedStage}Scene`;
+            // 스테이지 시작 (보스 러시 또는 일반 스테이지)
+            let sceneKey;
+            if (this.selectedStage === 'BossRush') {
+                sceneKey = 'BossRushScene';
+            } else {
+                sceneKey = `Stage${this.selectedStage}Scene`;
+            }
+
             this.time.delayedCall(200, () => {
-                this.scene.start(stageKey);
+                this.scene.start(sceneKey);
             });
 
         } catch (error) {

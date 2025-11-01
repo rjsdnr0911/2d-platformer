@@ -36,6 +36,9 @@ class GameScene extends Phaser.Scene {
             this.cooldownText = null;
             this.passiveItemsText = null;
 
+            // 패시브 아이템 툴팁 UI
+            this.passiveItemTooltipUI = null;
+
             // 월드 크기 설정
             this.physics.world.setBounds(0, 0, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
 
@@ -82,6 +85,9 @@ class GameScene extends Phaser.Scene {
 
             // UI 생성
             this.createUI();
+
+            // 패시브 아이템 툴팁 UI 초기화
+            this.passiveItemTooltipUI = new PassiveItemTooltipUI(this);
 
             // 이벤트 리스너
             this.events.on('playerDied', this.handlePlayerDeath, this);
@@ -378,14 +384,9 @@ class GameScene extends Phaser.Scene {
             }
         }
 
-        // 패시브 아이템 표시
-        if (window.player && this.passiveItemsText) {
-            if (window.player.passiveItems.length > 0) {
-                const itemIcons = window.player.passiveItems.map(item => item.icon).join(' ');
-                this.passiveItemsText.setText(`패시브: ${itemIcons}`);
-            } else {
-                this.passiveItemsText.setText('');
-            }
+        // 패시브 아이템 툴팁 UI 업데이트 (기존 텍스트 대체)
+        if (this.passiveItemTooltipUI) {
+            this.passiveItemTooltipUI.update(16, 110);
         }
     }
 

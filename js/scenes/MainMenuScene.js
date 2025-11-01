@@ -39,34 +39,39 @@ class MainMenuScene extends Phaser.Scene {
             // 난이도 선택
             this.createDifficultyButtons();
 
-            // 일반 게임 시작 버튼
+            // 게임 모드 버튼들 (가로 배치)
+            const centerX = CONSTANTS.GAME.WIDTH / 2;
+            const buttonSpacing = 140; // 버튼 간격
+
+            // 일반 게임 시작 버튼 (왼쪽)
             const normalButton = this.createButton(
-                CONSTANTS.GAME.WIDTH / 2,
+                centerX - buttonSpacing,
                 350,
                 '일반 게임 시작',
                 () => {
-                    // 일반 모드: 근접전사/마법사 전환
+                    // 일반 모드: 직업 세트 선택 후 Stage1 시작
                     this.registry.set('gameMode', 'normal');
-                    this.scene.start('StageSelectScene');
+                    this.scene.start('JobSelectScene');
                 }
             );
 
-            // 캐릭터 선택 모드 버튼
-            const classSelectButton = this.createButton(
-                CONSTANTS.GAME.WIDTH / 2,
-                415,
-                '캐릭터 선택 모드',
+            // 보스 러쉬 모드 버튼 (오른쪽)
+            const bossRushButton = this.createButton(
+                centerX + buttonSpacing,
+                350,
+                '보스 러쉬 모드',
                 () => {
-                    // 캐릭터 선택 모드: 직업 선택 후 플레이
-                    this.registry.set('gameMode', 'classSelect');
-                    this.scene.start('StageSelectScene');
-                }
+                    // 보스 러쉬 모드: 직업 세트 선택 후 시작
+                    this.registry.set('gameMode', 'bossRush');
+                    this.scene.start('JobSelectScene');
+                },
+                0xFF4444 // 빨간색
             );
 
-            // 최고 점수 표시 (버튼 아래로 이동)
+            // 최고 점수 표시
             this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                495,
+                430,
                 '',
                 {
                     fontSize: '14px',
@@ -103,9 +108,9 @@ class MainMenuScene extends Phaser.Scene {
         }
     }
 
-    createButton(x, y, text, onClick) {
+    createButton(x, y, text, onClick, color = 0x4444ff) {
         // 버튼 배경
-        const button = this.add.rectangle(x, y, 200, 50, 0x4444ff);
+        const button = this.add.rectangle(x, y, 200, 50, color);
         button.setInteractive({ useHandCursor: true });
 
         // 버튼 텍스트
@@ -116,24 +121,42 @@ class MainMenuScene extends Phaser.Scene {
         });
         buttonText.setOrigin(0.5);
 
+        // 색상 계산 (밝기 조절용)
+        const lightenColor = (hexColor) => {
+            const r = Math.min(255, ((hexColor >> 16) & 0xFF) + 0x22);
+            const g = Math.min(255, ((hexColor >> 8) & 0xFF) + 0x22);
+            const b = Math.min(255, (hexColor & 0xFF) + 0x22);
+            return (r << 16) | (g << 8) | b;
+        };
+
+        const darkenColor = (hexColor) => {
+            const r = Math.max(0, ((hexColor >> 16) & 0xFF) - 0x11);
+            const g = Math.max(0, ((hexColor >> 8) & 0xFF) - 0x11);
+            const b = Math.max(0, (hexColor & 0xFF) - 0x11);
+            return (r << 16) | (g << 8) | b;
+        };
+
+        const hoverColor = lightenColor(color);
+        const pressColor = darkenColor(color);
+
         // 호버 효과
         button.on('pointerover', () => {
-            button.setFillStyle(0x6666ff);
+            button.setFillStyle(hoverColor);
             buttonText.setScale(1.1);
         });
 
         button.on('pointerout', () => {
-            button.setFillStyle(0x4444ff);
+            button.setFillStyle(color);
             buttonText.setScale(1);
         });
 
         // 클릭 이벤트
         button.on('pointerdown', () => {
-            button.setFillStyle(0x3333cc);
+            button.setFillStyle(pressColor);
         });
 
         button.on('pointerup', () => {
-            button.setFillStyle(0x6666ff);
+            button.setFillStyle(hoverColor);
             if (onClick) {
                 onClick();
             }

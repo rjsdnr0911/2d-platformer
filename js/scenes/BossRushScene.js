@@ -1,7 +1,7 @@
-// Stage 2: 폐허의 성
-class Stage2Scene extends Phaser.Scene {
+// 보스 러시 모드 - 3개 보스 연속 전투
+class BossRushScene extends Phaser.Scene {
     constructor() {
-        super({ key: 'Stage2Scene' });
+        super({ key: 'BossRushScene' });
     }
 
     preload() {
@@ -31,17 +31,17 @@ class Stage2Scene extends Phaser.Scene {
             frameHeight: 32
         });
 
-        // Ghost 스프라이트시트 로드
-        this.load.spritesheet('ghost_idle', 'assets/Ghost/Idle (44x30).png', {
+        // 슬라임 보스 스프라이트시트
+        this.load.spritesheet('slime_idle', 'assets/Slime/Idle (44x30).png', {
             frameWidth: 44,
             frameHeight: 30
         });
-        this.load.spritesheet('ghost_hit', 'assets/Ghost/Hit (44x30).png', {
+        this.load.spritesheet('slime_hit', 'assets/Slime/Hit (44x30).png', {
             frameWidth: 44,
             frameHeight: 30
         });
 
-        // Rino 보스 스프라이트시트 로드
+        // Rino 보스 스프라이트시트
         this.load.spritesheet('rino_idle', 'assets/Rino/Idle (52x34).png', {
             frameWidth: 52,
             frameHeight: 34
@@ -54,6 +54,16 @@ class Stage2Scene extends Phaser.Scene {
             frameWidth: 52,
             frameHeight: 34
         });
+
+        // Skull 보스 스프라이트시트
+        this.load.spritesheet('skull_idle', 'assets/Skull/Idle 1 (52x54).png', {
+            frameWidth: 52,
+            frameHeight: 54
+        });
+        this.load.spritesheet('skull_hit', 'assets/Skull/Hit (52x54).png', {
+            frameWidth: 52,
+            frameHeight: 54
+        });
     }
 
     create() {
@@ -61,14 +71,13 @@ class Stage2Scene extends Phaser.Scene {
             // 플레이어 애니메이션 생성
             this.createPlayerAnimations();
 
-            // Ghost 애니메이션 생성
-            this.createGhostAnimations();
-
-            // Rino 애니메이션 생성
+            // 보스 애니메이션 생성
+            this.createSlimeAnimations();
             this.createRinoAnimations();
+            this.createSkullAnimations();
 
-            // 배경색 (어두운 회갈색 - 폐허의 성)
-            this.cameras.main.setBackgroundColor(0x3E2723);
+            // 배경색 (어두운 보라색)
+            this.cameras.main.setBackgroundColor(0x2a0845);
 
             // 전역 변수 초기화
             window.player = null;
@@ -77,15 +86,17 @@ class Stage2Scene extends Phaser.Scene {
             // 로컬 변수
             this.platforms = null;
             this.groundGroup = null;
-            this.enemies = null;
-            this.enemyList = [];
             this.boss = null;
-            this.bossSpawned = false;
-            this.bossSpawning = false; // 보스 소환 진행 중 플래그
+            this.currentBossIndex = 0;
+            this.bossDefeated = false;
+            this.isTransitioning = false;
 
-            // 스테이지 정보
-            this.stageNumber = 2;
-            this.stageName = 'Stage 2: 폐허의 성';
+            // 보스 순서 (SlimeBoss -> RinoBoss -> SkullBoss)
+            this.bossSequence = [
+                { name: 'SlimeBoss', class: window.SlimeBoss, title: 'SLIME KING', color: '#00ff00' },
+                { name: 'RinoBoss', class: window.RinoBoss, title: 'RAGING RHINO', color: '#808080' },
+                { name: 'SkullBoss', class: window.SkullBoss, title: 'DEATH SKULL', color: '#8b00ff' }
+            ];
 
             // 키보드 입력
             this.cursors = null;
@@ -95,8 +106,10 @@ class Stage2Scene extends Phaser.Scene {
             this.healthText = null;
             this.abilityText = null;
             this.cooldownText = null;
-            this.passiveItemsText = null;
-            this.stageText = null;
+            this.bossCountText = null;
+            this.bossHpBar = null;
+            this.bossHpBarBg = null;
+            this.bossNameText = null;
 
             // 아이템 알림 UI
             this.itemNotificationUI = null;
@@ -109,7 +122,7 @@ class Stage2Scene extends Phaser.Scene {
             this.isMobile = MobileDetector.isMobile();
 
             // 월드 크기 설정
-            this.physics.world.setBounds(0, 0, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
+            this.physics.world.setBounds(0, 0, CONSTANTS.GAME.WIDTH, CONSTANTS.GAME.HEIGHT);
 
             // 플랫폼 그룹 생성
             this.platforms = this.physics.add.staticGroup();
@@ -118,11 +131,11 @@ class Stage2Scene extends Phaser.Scene {
             // 바닥 생성
             this.createGround();
 
-            // 플랫폼 생성 (Stage 2 레이아웃 - 성곽 테마)
+            // 중앙 플랫폼 생성
             this.createPlatforms();
 
             // 플레이어 생성
-            window.player = new Player(this, 100, 400);
+            window.player = new Player(this, CONSTANTS.GAME.WIDTH / 2 - 200, 400);
 
             // 선택된 직업 세트에 따라 능력 장착
             const selectedJobSet = this.registry.get('selectedJobSet') || 'swordMagic';
@@ -130,34 +143,33 @@ class Stage2Scene extends Phaser.Scene {
             let ability1, ability2;
 
             if (selectedJobSet === 'swordMagic') {
+                // 검/마법 세트
                 ability1 = new SwordAbility(this);
                 ability2 = new MagicAbility(this);
 
                 if (CONSTANTS.GAME.DEBUG) {
-                    console.log('직업 세트: 검/마법');
+                    console.log('보스 러시 - 직업 세트: 검/마법');
                 }
             } else if (selectedJobSet === 'hammerBow') {
+                // 해머/활 세트
                 ability1 = new HammerAbility(this);
                 ability2 = new BowAbility(this);
 
                 if (CONSTANTS.GAME.DEBUG) {
-                    console.log('직업 세트: 해머/활');
+                    console.log('보스 러시 - 직업 세트: 해머/활');
                 }
             } else {
+                // 기본값: 검/마법
                 ability1 = new SwordAbility(this);
                 ability2 = new MagicAbility(this);
             }
 
             window.player.equipAbility(ability1, 0);
             window.player.equipAbility(ability2, 1);
-            window.player.setCurrentAbilityIndex(0);
+            window.player.setCurrentAbilityIndex(0); // 시작은 첫 번째 능력
 
             // 카메라 설정
             this.setupCamera();
-
-            // 적 생성 (검병 중심)
-            this.enemies = this.physics.add.group();
-            this.createEnemies();
 
             // 충돌 설정
             this.setupCollisions();
@@ -197,27 +209,28 @@ class Stage2Scene extends Phaser.Scene {
 
             // 이벤트 리스너
             this.events.on('playerDied', this.handlePlayerDeath, this);
+            this.events.on('bossDefeated', this.handleBossDefeated, this);
 
-            // 현재 씬을 레지스트리에 저장 (일시정지 시 사용)
-            this.registry.set('activeScene', 'Stage2Scene');
+            // 현재 씬을 레지스트리에 저장
+            this.registry.set('activeScene', 'BossRushScene');
 
-            // 점수 시스템 시작
-            window.scoreManager.startGame();
-            this.registry.set('currentScore', 0);
+            // 첫 번째 보스 소환
+            this.time.delayedCall(1000, () => {
+                this.spawnBoss(0);
+            });
 
             if (CONSTANTS.GAME.DEBUG) {
-                console.log('Stage 2 로드 완료');
+                console.log('보스 러시 모드 시작!');
             }
 
         } catch (error) {
-            console.error('Stage2Scene create 오류:', error);
+            console.error('BossRushScene create 오류:', error);
         }
     }
 
     createPlayerAnimations() {
-        if (this.anims.exists('player_idle')) return; // 이미 생성되었으면 스킵
+        if (this.anims.exists('player_idle')) return;
 
-        // Idle 애니메이션 (11 프레임)
         this.anims.create({
             key: 'player_idle',
             frames: this.anims.generateFrameNumbers('player_idle', { start: 0, end: 10 }),
@@ -225,7 +238,6 @@ class Stage2Scene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Run 애니메이션 (12 프레임)
         this.anims.create({
             key: 'player_run',
             frames: this.anims.generateFrameNumbers('player_run', { start: 0, end: 11 }),
@@ -233,28 +245,24 @@ class Stage2Scene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Jump 애니메이션
         this.anims.create({
             key: 'player_jump',
             frames: this.anims.generateFrameNumbers('player_jump', { start: 0, end: 0 }),
             frameRate: 1
         });
 
-        // Fall 애니메이션
         this.anims.create({
             key: 'player_fall',
             frames: this.anims.generateFrameNumbers('player_fall', { start: 0, end: 0 }),
             frameRate: 1
         });
 
-        // Double Jump 애니메이션
         this.anims.create({
             key: 'player_double_jump',
             frames: this.anims.generateFrameNumbers('player_double_jump', { start: 0, end: 5 }),
             frameRate: 12
         });
 
-        // Hit 애니메이션
         this.anims.create({
             key: 'player_hit',
             frames: this.anims.generateFrameNumbers('player_hit', { start: 0, end: 6 }),
@@ -262,25 +270,26 @@ class Stage2Scene extends Phaser.Scene {
         });
     }
 
-    createGhostAnimations() {
-        // Idle 애니메이션 (10 프레임)
+    createSlimeAnimations() {
+        if (this.anims.exists('slime_idle')) return;
+
         this.anims.create({
-            key: 'ghost_idle',
-            frames: this.anims.generateFrameNumbers('ghost_idle', { start: 0, end: 9 }),
+            key: 'slime_idle',
+            frames: this.anims.generateFrameNumbers('slime_idle', { start: 0, end: 9 }),
             frameRate: 10,
             repeat: -1
         });
 
-        // Hit 애니메이션
         this.anims.create({
-            key: 'ghost_hit',
-            frames: this.anims.generateFrameNumbers('ghost_hit', { start: 0, end: 4 }),
+            key: 'slime_hit',
+            frames: this.anims.generateFrameNumbers('slime_hit', { start: 0, end: 4 }),
             frameRate: 12
         });
     }
 
     createRinoAnimations() {
-        // Idle 애니메이션 (11 프레임)
+        if (this.anims.exists('rino_idle')) return;
+
         this.anims.create({
             key: 'rino_idle',
             frames: this.anims.generateFrameNumbers('rino_idle', { start: 0, end: 10 }),
@@ -288,7 +297,6 @@ class Stage2Scene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Run 애니메이션 (6 프레임)
         this.anims.create({
             key: 'rino_run',
             frames: this.anims.generateFrameNumbers('rino_run', { start: 0, end: 5 }),
@@ -296,7 +304,6 @@ class Stage2Scene extends Phaser.Scene {
             repeat: -1
         });
 
-        // Hit 애니메이션
         this.anims.create({
             key: 'rino_hit',
             frames: this.anims.generateFrameNumbers('rino_hit', { start: 0, end: 4 }),
@@ -304,18 +311,35 @@ class Stage2Scene extends Phaser.Scene {
         });
     }
 
+    createSkullAnimations() {
+        if (this.anims.exists('skull_idle')) return;
+
+        this.anims.create({
+            key: 'skull_idle',
+            frames: this.anims.generateFrameNumbers('skull_idle', { start: 0, end: 7 }),
+            frameRate: 10,
+            repeat: -1
+        });
+
+        this.anims.create({
+            key: 'skull_hit',
+            frames: this.anims.generateFrameNumbers('skull_hit', { start: 0, end: 4 }),
+            frameRate: 12
+        });
+    }
+
     createGround() {
         const groundWidth = 400;
         const groundHeight = 40;
-        const groundY = CONSTANTS.WORLD.HEIGHT - 20;
+        const groundY = CONSTANTS.GAME.HEIGHT - 20;
 
-        for (let x = 0; x < CONSTANTS.WORLD.WIDTH; x += groundWidth) {
+        for (let x = 0; x < CONSTANTS.GAME.WIDTH; x += groundWidth) {
             const ground = this.add.rectangle(
                 x + groundWidth / 2,
                 groundY,
                 groundWidth,
                 groundHeight,
-                0x616161 // 회색 돌 (성곽 바닥)
+                0x444444
             );
             this.groundGroup.add(ground);
         }
@@ -324,31 +348,11 @@ class Stage2Scene extends Phaser.Scene {
     }
 
     createPlatforms() {
+        // 중앙 플랫폼 (보스 전투 공간)
         const platformData = [
-            // 시작 구간 (높낮이가 있는 성벽)
-            { x: 200, y: 450, w: 150, h: 20 },
-            { x: 400, y: 380, w: 120, h: 20 },
-            { x: 600, y: 480, w: 150, h: 20 },
-
-            // 검병 구간 1 (무너진 성벽)
-            { x: 900, y: 420, w: 180, h: 20 },
-            { x: 1100, y: 320, w: 130, h: 20 },
-            { x: 1300, y: 460, w: 150, h: 20 },
-
-            // 검병 구간 2 (층계 형태)
-            { x: 1600, y: 380, w: 160, h: 20 },
-            { x: 1800, y: 280, w: 120, h: 20 },
-            { x: 2000, y: 480, w: 180, h: 20 },
-
-            // 검병 구간 3
-            { x: 2300, y: 360, w: 140, h: 20 },
-            { x: 2500, y: 450, w: 150, h: 20 },
-
-            // 보스 전 구간 (높은 탑)
-            { x: 2700, y: 280, w: 100, h: 20 },
-
-            // 보스 구역 (넓은 성 광장)
-            { x: 2950, y: 500, w: 300, h: 20 }
+            { x: 200, y: 480, w: 120, h: 20 },
+            { x: CONSTANTS.GAME.WIDTH - 200, y: 480, w: 120, h: 20 },
+            { x: CONSTANTS.GAME.WIDTH / 2, y: 380, w: 200, h: 20 }
         ];
 
         platformData.forEach(data => {
@@ -357,7 +361,7 @@ class Stage2Scene extends Phaser.Scene {
                 data.y,
                 data.w,
                 data.h,
-                0x8D6E63 // 갈색 돌 (성벽 플랫폼)
+                0x666666
             );
             this.platforms.add(platform);
         });
@@ -365,38 +369,8 @@ class Stage2Scene extends Phaser.Scene {
         this.platforms.refresh();
     }
 
-    createEnemies() {
-        // Ghost 배치 (6마리)
-        const ghostEnemyPositions = [
-            { x: 500, y: 400 },
-            { x: 1000, y: 370 },
-            { x: 1200, y: 270 },
-            { x: 1700, y: 330 },
-            { x: 2100, y: 430 },
-            { x: 2400, y: 310 }
-        ];
-
-        ghostEnemyPositions.forEach(pos => {
-            const ghostEnemy = new GhostEnemy(this, pos.x, pos.y);
-
-            // 난이도 적용
-            const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
-            ghostEnemy.maxHp = Math.round(ghostEnemy.maxHp * difficultyMultiplier.enemyHpMultiplier);
-            ghostEnemy.hp = ghostEnemy.maxHp;
-            ghostEnemy.damage = Math.round(ghostEnemy.damage * difficultyMultiplier.enemyDamageMultiplier);
-            ghostEnemy.sprite.setData('damage', ghostEnemy.damage);
-
-            this.enemyList.push(ghostEnemy);
-            this.enemies.add(ghostEnemy.sprite);
-        });
-
-        if (CONSTANTS.GAME.DEBUG) {
-            console.log('Stage 2 적 생성 완료: Ghost', ghostEnemyPositions.length, '마리 (난이도:', window.difficultyManager.getDifficulty(), ')');
-        }
-    }
-
     setupCamera() {
-        this.cameras.main.setBounds(0, 0, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
+        this.cameras.main.setBounds(0, 0, CONSTANTS.GAME.WIDTH, CONSTANTS.GAME.HEIGHT);
         this.cameras.main.startFollow(window.player.sprite, true, 0.1, 0.1);
         this.cameras.main.setZoom(1);
     }
@@ -405,257 +379,25 @@ class Stage2Scene extends Phaser.Scene {
         // 플레이어와 플랫폼
         this.physics.add.collider(window.player.sprite, this.platforms);
         this.physics.add.collider(window.player.sprite, this.groundGroup);
-
-        // 적과 플랫폼
-        this.physics.add.collider(this.enemies, this.platforms);
-        this.physics.add.collider(this.enemies, this.groundGroup);
-
-        // 플레이어와 적 충돌
-        this.physics.add.overlap(
-            window.player.sprite,
-            this.enemies,
-            this.handlePlayerEnemyCollision,
-            null,
-            this
-        );
     }
 
-    handlePlayerEnemyCollision(playerSprite, enemySprite) {
-        const enemyEntity = enemySprite.getData('entity');
-        const damage = enemySprite.getData('damage');
-
-        if (enemyEntity && enemyEntity.isAlive && window.player && window.player.isAlive) {
-            window.player.takeDamage(damage);
-        }
-    }
-
-    handleAttackEnemyCollision(attackObj, enemySprite) {
-        const enemyEntity = enemySprite.getData('entity');
-        const damage = attackObj.getData('damage');
-
-        if (enemyEntity && enemyEntity.isAlive && !enemyEntity.isHit) {
-            // 적이 죽을지 체크
-            const willDie = enemyEntity.hp <= damage;
-
-            enemyEntity.takeDamage(damage);
-
-            // 적 처치 시 점수 추가 & 근접 캐릭터 흡혈 (Ghost = bat 타입 점수)
-            if (willDie && !enemyEntity.isBoss) {
-                const score = window.scoreManager.addEnemyScore('bat');
-                if (score > 0) {
-                    this.registry.set('currentScore', window.scoreManager.getCurrentScore());
-
-                    if (CONSTANTS.GAME.DEBUG) {
-                        console.log('Ghost 처치 점수:', score, '총점:', window.scoreManager.getCurrentScore());
-                    }
-                }
-
-                // 근접 캐릭터 흡혈 (검술 능력만 해당)
-                const currentAbility = window.player.getCurrentAbility();
-                if (currentAbility && currentAbility.name === '검술') {
-                    window.player.vampiricHeal(3);
-                }
-            }
-
-            if (attackObj && attackObj.active) {
-                attackObj.destroy();
-            }
-        }
-    }
-
-
-    createUI() {
-        // 스테이지 이름
-        this.stageText = this.add.text(
-            CONSTANTS.GAME.WIDTH / 2,
-            16,
-            this.stageName,
-            {
-                fontSize: '20px',
-                fill: '#fff',
-                fontStyle: 'bold',
-                stroke: '#000',
-                strokeThickness: 4
-            }
-        );
-        this.stageText.setOrigin(0.5, 0);
-        this.stageText.setScrollFactor(0);
-
-        // 점수 표시 (오른쪽 위)
-        this.scoreText = this.add.text(
-            CONSTANTS.GAME.WIDTH - 16,
-            50,
-            '',
-            {
-                fontSize: '18px',
-                fill: '#ffff00',
-                backgroundColor: '#000',
-                padding: { x: 10, y: 5 },
-                fontStyle: 'bold'
-            }
-        );
-        this.scoreText.setOrigin(1, 0);
-        this.scoreText.setScrollFactor(0);
-
-        // 체력 표시
-        this.healthText = this.add.text(16, 50, '', {
-            fontSize: '20px',
-            fill: '#fff',
-            backgroundColor: '#000',
-            padding: { x: 10, y: 5 }
-        });
-        this.healthText.setScrollFactor(0);
-
-        // 능력 표시
-        this.abilityText = this.add.text(16, 84, '', {
-            fontSize: '16px',
-            fill: '#fff',
-            backgroundColor: '#000',
-            padding: { x: 10, y: 5 }
-        });
-        this.abilityText.setScrollFactor(0);
-
-        // 쿨타임 표시 (초 단위)
-        this.cooldownText = this.add.text(16, 114, '', {
-            fontSize: '14px',
-            fill: '#ffff00',
-            backgroundColor: '#000',
-            padding: { x: 10, y: 5 }
-        });
-        this.cooldownText.setScrollFactor(0);
-
-        // 패시브 아이템 표시
-        this.passiveItemsText = this.add.text(16, 144, '', {
-            fontSize: '14px',
-            fill: '#fff',
-            backgroundColor: '#000',
-            padding: { x: 10, y: 5 }
-        });
-        this.passiveItemsText.setScrollFactor(0);
-
-        // 조작법 (Q/E 전환 포함)
-        const controlsGuide = '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격 | Q/E 전환';
-
-        const controlsText = this.add.text(
-            CONSTANTS.GAME.WIDTH - 16,
-            16,
-            controlsGuide,
-            {
-                fontSize: '12px',
-                fill: '#fff',
-                backgroundColor: '#000',
-                padding: { x: 8, y: 4 },
-                align: 'right'
-            }
-        );
-        controlsText.setOrigin(1, 0);
-        controlsText.setScrollFactor(0);
-    }
-
-    updateUI() {
-        // 점수 표시
-        if (this.scoreText) {
-            const currentScore = window.scoreManager.getCurrentScore();
-            this.scoreText.setText(`점수: ${window.scoreManager.formatScore(currentScore)}`);
-        }
-
-        if (window.player && this.healthText) {
-            const hearts = Math.ceil(window.player.hp / 10);
-            this.healthText.setText(`HP: ${'❤'.repeat(hearts)} (${window.player.hp}/${window.player.maxHp})`);
-        }
-
-        if (window.player && this.abilityText) {
-            const currentAbility = window.player.getCurrentAbility();
-            const abilityName = currentAbility ? currentAbility.name : '없음';
-            this.abilityText.setText(`직업: ${abilityName}`);
-        }
-
-        if (window.player && this.cooldownText) {
-            const ability = window.player.getCurrentAbility();
-            if (ability) {
-                // 쿨타임 적용 (패시브 아이템 쿨다운 감소 적용)
-                const cooldownReduction = window.player.cooldownReduction || 0;
-                const basicCooldown = ability.config.BASIC_COOLDOWN * (1 - cooldownReduction);
-                const strongCooldown = ability.config.STRONG_COOLDOWN * (1 - cooldownReduction);
-                const skillCooldown = ability.config.SKILL_COOLDOWN * (1 - cooldownReduction);
-
-                // 남은 쿨타임 계산 (초 단위)
-                const currentTime = this.time.now;
-                const basicRemaining = Math.max(0, (basicCooldown - (currentTime - ability.lastBasicAttackTime)) / 1000);
-                const strongRemaining = Math.max(0, (strongCooldown - (currentTime - ability.lastStrongAttackTime)) / 1000);
-                const skillRemaining = Math.max(0, (skillCooldown - (currentTime - ability.lastSkillTime)) / 1000);
-
-                // 쿨타임 표시 (0이면 ●, 아니면 초 표시)
-                const basicText = basicRemaining > 0 ? basicRemaining.toFixed(1) + 's' : '●';
-                const strongText = strongRemaining > 0 ? strongRemaining.toFixed(1) + 's' : '●';
-                const skillText = skillRemaining > 0 ? skillRemaining.toFixed(1) + 's' : '●';
-
-                this.cooldownText.setText(`Z: ${basicText} | X: ${strongText} | C: ${skillText}`);
-            } else {
-                this.cooldownText.setText('');
-            }
-        }
-
-        // 패시브 아이템 툴팁 UI 업데이트 (기존 텍스트 대체)
-        if (this.passiveItemTooltipUI) {
-            this.passiveItemTooltipUI.update(16, 144);
-        }
-    }
-
-    handlePlayerDeath() {
-        console.log('플레이어 사망!');
-        this.time.delayedCall(500, () => {
-            // 현재 스테이지 정보 저장 (다시하기 시 사용)
-            this.registry.set('lastStage', 'Stage2Scene');
-            this.scene.start('GameOverScene');
-        });
-    }
-
-    checkBossSpawn() {
-        // 보스가 이미 존재하면 체크 안 함
-        if (this.bossSpawned) return;
-
-        // 모든 일반 적을 처치하면 보스 등장
-        const aliveEnemies = this.enemyList.filter(e => e.isAlive && !e.isBoss);
-
-        if (CONSTANTS.GAME.DEBUG) {
-            // 적이 죽을 때마다 로그 출력
-            if (aliveEnemies.length <= 3 && aliveEnemies.length > 0) {
-                console.log('남은 일반 적:', aliveEnemies.length, 'bossSpawned:', this.bossSpawned);
-            }
-        }
-
-        if (aliveEnemies.length === 0 && !this.bossSpawned) {
-            if (CONSTANTS.GAME.DEBUG) {
-                console.log('보스 소환 조건 만족! 일반 적 처치 완료');
-            }
-            // 즉시 플래그 설정하여 중복 방지
-            this.bossSpawned = true;
-            this.spawnBoss();
-        }
-    }
-
-    spawnBoss() {
-        if (CONSTANTS.GAME.DEBUG) {
-            console.log('spawnBoss() 호출됨');
-        }
-
-        // window.RinoBoss 존재 여부 확인
-        if (typeof window.RinoBoss === 'undefined') {
-            console.error('RinoBoss 클래스를 찾을 수 없습니다!');
-            console.log('사용 가능한 보스 클래스:', Object.keys(window).filter(k => k.includes('Boss')));
-            this.bossSpawned = false;
+    spawnBoss(bossIndex) {
+        if (bossIndex >= this.bossSequence.length) {
+            // 모든 보스 처치 완료!
+            this.handleAllBossesDefeated();
             return;
         }
+
+        const bossInfo = this.bossSequence[bossIndex];
 
         // 보스 등장 알림
         const bossText = this.add.text(
             CONSTANTS.GAME.WIDTH / 2,
             CONSTANTS.GAME.HEIGHT / 2,
-            '⚠️ 보스 등장! ⚠️\nRAGING RHINO',
+            `⚠️ BOSS ${bossIndex + 1}/3 ⚠️\n${bossInfo.title}`,
             {
                 fontSize: '48px',
-                fill: '#808080',
+                fill: bossInfo.color,
                 fontStyle: 'bold',
                 stroke: '#000',
                 strokeThickness: 6,
@@ -673,18 +415,16 @@ class Stage2Scene extends Phaser.Scene {
             alpha: 0,
             duration: 2000,
             onComplete: () => {
+                bossText.destroy();
+
                 try {
-                    bossText.destroy();
-
-                    // RinoBoss 참조를 먼저 저장
-                    const RinoBossClass = window.RinoBoss;
-
-                    if (!RinoBossClass) {
-                        throw new Error('RinoBoss 클래스가 정의되지 않았습니다');
+                    // 보스 생성
+                    const BossClass = bossInfo.class;
+                    if (!BossClass) {
+                        throw new Error(`${bossInfo.name} 클래스를 찾을 수 없습니다`);
                     }
 
-                    // 보스 생성 (보스 구역: x=2950 근처)
-                    this.boss = new RinoBossClass(this, 2950, 400);
+                    this.boss = new BossClass(this, CONSTANTS.GAME.WIDTH / 2 + 150, 350);
 
                     // 난이도 적용
                     const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
@@ -695,81 +435,340 @@ class Stage2Scene extends Phaser.Scene {
                         this.boss.sprite.setData('damage', this.boss.damage);
                     }
 
-                    this.enemyList.push(this.boss);
-                    this.enemies.add(this.boss.sprite);
+                    // 보스와 플레이어 충돌 설정
+                    this.physics.add.overlap(
+                        window.player.sprite,
+                        this.boss.sprite,
+                        this.handlePlayerBossCollision,
+                        null,
+                        this
+                    );
 
-                    // 보스 처치 이벤트 리스너
-                    this.events.on('bossDefeated', this.handleBossDefeated, this);
+                    // 보스와 플랫폼 충돌
+                    this.physics.add.collider(this.boss.sprite, this.platforms);
+                    this.physics.add.collider(this.boss.sprite, this.groundGroup);
+
+                    this.bossDefeated = false;
 
                     if (CONSTANTS.GAME.DEBUG) {
-                        console.log('라이노 보스 생성 완료! HP:', this.boss.hp, '난이도:', window.difficultyManager.getDifficulty());
+                        console.log(`${bossInfo.title} 생성 완료! HP: ${this.boss.hp}`);
                     }
                 } catch (error) {
                     console.error('보스 생성 중 오류:', error);
-                    console.error('에러 상세:', error.stack);
-                    this.bossSpawned = false;
                 }
             }
         });
     }
 
-    handleBossDefeated(stageNumber) {
-        console.log('Stage', stageNumber, '보스 처치!');
+    handlePlayerBossCollision(playerSprite, bossSprite) {
+        const bossEntity = bossSprite.getData('entity');
+        const damage = bossSprite.getData('damage');
 
-        // 보스 처치 점수 추가
-        const bossScore = window.scoreManager.addEnemyScore('boss');
-        this.registry.set('currentScore', window.scoreManager.getCurrentScore());
+        if (bossEntity && bossEntity.isAlive && window.player && window.player.isAlive) {
+            window.player.takeDamage(damage);
+        }
+    }
+
+    handleAttackBossCollision(attackObj, bossSprite) {
+        const bossEntity = bossSprite.getData('entity');
+        const damage = attackObj.getData('damage');
+
+        if (bossEntity && bossEntity.isAlive && !bossEntity.isHit) {
+            // 보스가 죽을지 체크
+            const willDie = bossEntity.hp <= damage;
+
+            bossEntity.takeDamage(damage);
+
+            // 보스 처치 시 흡혈 (검술 능력만)
+            if (willDie) {
+                const currentAbility = window.player.getCurrentAbility();
+                if (currentAbility && currentAbility.name === '검술') {
+                    window.player.vampiricHeal(3);
+                }
+            }
+
+            if (attackObj && attackObj.active) {
+                attackObj.destroy();
+            }
+        }
+    }
+
+    handleBossDefeated(stageNumber) {
+        if (this.bossDefeated || this.isTransitioning) return;
+
+        this.bossDefeated = true;
+        this.isTransitioning = true;
 
         if (CONSTANTS.GAME.DEBUG) {
-            console.log('보스 처치 점수:', bossScore, '총점:', window.scoreManager.getCurrentScore());
+            console.log(`보스 ${this.currentBossIndex + 1} 처치!`);
         }
 
-        // 스테이지 클리어
-        this.time.delayedCall(2000, () => {
-            this.handleStageClear();
+        // 플레이어 체력 회복 (50% 회복)
+        const healAmount = Math.floor(window.player.maxHp * 0.5);
+        window.player.hp = Math.min(window.player.maxHp, window.player.hp + healAmount);
+
+        // 승리 텍스트
+        const victoryText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            CONSTANTS.GAME.HEIGHT / 2,
+            `BOSS ${this.currentBossIndex + 1} DEFEATED!\n체력 50% 회복!`,
+            {
+                fontSize: '36px',
+                fill: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 6,
+                align: 'center'
+            }
+        );
+        victoryText.setOrigin(0.5);
+        victoryText.setScrollFactor(0);
+        victoryText.setDepth(1000);
+
+        this.tweens.add({
+            targets: victoryText,
+            scale: 1.2,
+            alpha: 0,
+            duration: 2000,
+            onComplete: () => {
+                victoryText.destroy();
+
+                // 다음 보스로 이동
+                this.currentBossIndex++;
+                this.isTransitioning = false;
+
+                this.time.delayedCall(500, () => {
+                    this.spawnBoss(this.currentBossIndex);
+                });
+            }
         });
     }
 
-    handleStageClear() {
-        // 스테이지 클리어 시간 계산
-        const startTime = this.registry.get('stageStartTime');
-        const clearTime = Date.now() - startTime;
-
-        // 스테이지 클리어 보너스
-        const stageClearScore = window.scoreManager.addStageClearScore();
-
-        // 시간 보너스
-        const timeBonus = window.scoreManager.calculateTimeBonus();
-
-        // 최종 점수
-        const finalScore = window.scoreManager.getCurrentScore();
-        this.registry.set('currentScore', finalScore);
-
+    handleAllBossesDefeated() {
         if (CONSTANTS.GAME.DEBUG) {
-            console.log('스테이지 클리어 점수:', stageClearScore);
-            console.log('시간 보너스:', timeBonus);
-            console.log('최종 점수:', finalScore);
+            console.log('모든 보스 처치 완료!');
         }
 
-        // 저장 데이터 업데이트
-        const saveData = window.saveManager.load();
-        window.saveManager.clearStage(this.stageNumber, clearTime, saveData);
+        // 최종 승리 텍스트
+        const finalText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            CONSTANTS.GAME.HEIGHT / 2,
+            '🎉 BOSS RUSH CLEAR! 🎉\n모든 보스를 격파했습니다!',
+            {
+                fontSize: '42px',
+                fill: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 6,
+                align: 'center'
+            }
+        );
+        finalText.setOrigin(0.5);
+        finalText.setScrollFactor(0);
+        finalText.setDepth(1000);
 
-        // 클리어 시간 레지스트리에 저장
-        this.registry.set('clearTime', clearTime);
+        this.time.delayedCall(3000, () => {
+            this.scene.start('MainMenuScene');
+        });
+    }
 
-        // 스테이지 클리어 화면으로 전환
-        this.scene.start('StageClearScene');
+    createUI() {
+        // 스테이지 이름
+        const titleText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            16,
+            'BOSS RUSH MODE',
+            {
+                fontSize: '24px',
+                fill: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 4
+            }
+        );
+        titleText.setOrigin(0.5, 0);
+        titleText.setScrollFactor(0);
+
+        // 보스 진행도 표시
+        this.bossCountText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            50,
+            'BOSS: 1/3',
+            {
+                fontSize: '20px',
+                fill: '#fff',
+                backgroundColor: '#000',
+                padding: { x: 10, y: 5 },
+                fontStyle: 'bold'
+            }
+        );
+        this.bossCountText.setOrigin(0.5, 0);
+        this.bossCountText.setScrollFactor(0);
+
+        // 체력 표시
+        this.healthText = this.add.text(16, 84, '', {
+            fontSize: '20px',
+            fill: '#fff',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        });
+        this.healthText.setScrollFactor(0);
+
+        // 능력 표시
+        this.abilityText = this.add.text(16, 118, '', {
+            fontSize: '16px',
+            fill: '#fff',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        });
+        this.abilityText.setScrollFactor(0);
+
+        // 쿨타임 표시
+        this.cooldownText = this.add.text(16, 148, '', {
+            fontSize: '14px',
+            fill: '#ffff00',
+            backgroundColor: '#000',
+            padding: { x: 10, y: 5 }
+        });
+        this.cooldownText.setScrollFactor(0);
+
+        // 조작법 (Q/E 전환 포함)
+        const controlsGuide = '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격 | Q/E 전환';
+        const controlsText = this.add.text(
+            CONSTANTS.GAME.WIDTH - 16,
+            16,
+            controlsGuide,
+            {
+                fontSize: '12px',
+                fill: '#fff',
+                backgroundColor: '#000',
+                padding: { x: 8, y: 4 },
+                align: 'right'
+            }
+        );
+        controlsText.setOrigin(1, 0);
+        controlsText.setScrollFactor(0);
+
+        // 보스 HP 바 배경
+        this.bossHpBarBg = this.add.rectangle(
+            CONSTANTS.GAME.WIDTH / 2,
+            CONSTANTS.GAME.HEIGHT - 40,
+            400,
+            20,
+            0x555555
+        );
+        this.bossHpBarBg.setScrollFactor(0);
+        this.bossHpBarBg.setDepth(99);
+        this.bossHpBarBg.setVisible(false);
+
+        // 보스 HP 바
+        this.bossHpBar = this.add.rectangle(
+            CONSTANTS.GAME.WIDTH / 2,
+            CONSTANTS.GAME.HEIGHT - 40,
+            400,
+            20,
+            0xFF0000
+        );
+        this.bossHpBar.setScrollFactor(0);
+        this.bossHpBar.setDepth(100);
+        this.bossHpBar.setVisible(false);
+
+        // 보스 이름
+        this.bossNameText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            CONSTANTS.GAME.HEIGHT - 60,
+            '',
+            {
+                fontSize: '18px',
+                fill: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 4
+            }
+        );
+        this.bossNameText.setOrigin(0.5);
+        this.bossNameText.setScrollFactor(0);
+        this.bossNameText.setDepth(100);
+        this.bossNameText.setVisible(false);
+    }
+
+    updateUI() {
+        // 보스 진행도
+        if (this.bossCountText) {
+            this.bossCountText.setText(`BOSS: ${this.currentBossIndex + 1}/3`);
+        }
+
+        // 플레이어 체력
+        if (window.player && this.healthText) {
+            const hearts = Math.ceil(window.player.hp / 10);
+            this.healthText.setText(`HP: ${'❤'.repeat(hearts)} (${window.player.hp}/${window.player.maxHp})`);
+        }
+
+        // 능력 표시
+        if (window.player && this.abilityText) {
+            const currentAbility = window.player.getCurrentAbility();
+            const abilityName = currentAbility ? currentAbility.name : '없음';
+            this.abilityText.setText(`직업: ${abilityName}`);
+        }
+
+        // 쿨타임 표시
+        if (window.player && this.cooldownText) {
+            const ability = window.player.getCurrentAbility();
+            if (ability) {
+                const cooldownReduction = window.player.cooldownReduction || 0;
+                const basicCooldown = ability.config.BASIC_COOLDOWN * (1 - cooldownReduction);
+                const strongCooldown = ability.config.STRONG_COOLDOWN * (1 - cooldownReduction);
+                const skillCooldown = ability.config.SKILL_COOLDOWN * (1 - cooldownReduction);
+
+                const currentTime = this.time.now;
+                const basicRemaining = Math.max(0, (basicCooldown - (currentTime - ability.lastBasicAttackTime)) / 1000);
+                const strongRemaining = Math.max(0, (strongCooldown - (currentTime - ability.lastStrongAttackTime)) / 1000);
+                const skillRemaining = Math.max(0, (skillCooldown - (currentTime - ability.lastSkillTime)) / 1000);
+
+                const basicText = basicRemaining > 0 ? basicRemaining.toFixed(1) + 's' : '●';
+                const strongText = strongRemaining > 0 ? strongRemaining.toFixed(1) + 's' : '●';
+                const skillText = skillRemaining > 0 ? skillRemaining.toFixed(1) + 's' : '●';
+
+                this.cooldownText.setText(`Z: ${basicText} | X: ${strongText} | C: ${skillText}`);
+            } else {
+                this.cooldownText.setText('');
+            }
+        }
+
+        // 패시브 아이템 툴팁 UI 업데이트
+        if (this.passiveItemTooltipUI) {
+            this.passiveItemTooltipUI.update(16, 178);
+        }
+
+        // 보스 HP 바
+        if (this.boss && this.boss.isAlive) {
+            this.bossHpBarBg.setVisible(true);
+            this.bossHpBar.setVisible(true);
+            this.bossNameText.setVisible(true);
+
+            const hpPercentage = this.boss.hp / this.boss.maxHp;
+            this.bossHpBar.width = 400 * hpPercentage;
+
+            const bossInfo = this.bossSequence[this.currentBossIndex];
+            this.bossNameText.setText(`${bossInfo.title} - HP: ${this.boss.hp}/${this.boss.maxHp}`);
+        } else {
+            this.bossHpBarBg.setVisible(false);
+            this.bossHpBar.setVisible(false);
+            this.bossNameText.setVisible(false);
+        }
+    }
+
+    handlePlayerDeath() {
+        console.log('플레이어 사망!');
+        this.time.delayedCall(500, () => {
+            this.registry.set('lastStage', 'BossRushScene');
+            this.scene.start('GameOverScene');
+        });
     }
 
     pauseGame() {
-        // 현재 씬을 레지스트리에 저장
-        this.registry.set('activeScene', 'Stage2Scene');
-
-        // 현재 씬 일시정지
+        this.registry.set('activeScene', 'BossRushScene');
         this.scene.pause();
-
-        // 일시정지 씬 시작
         this.scene.launch('PauseScene');
     }
 
@@ -782,7 +781,6 @@ class Stage2Scene extends Phaser.Scene {
             let inputKeys = this.keys;
 
             if (this.isMobile && this.touchControls) {
-                // 터치 입력 JustPressed 처리 (Player.update() 전에 먼저 처리)
                 if (this.touchControls.justPressed('jump')) {
                     window.player.jump();
                 }
@@ -803,21 +801,17 @@ class Stage2Scene extends Phaser.Scene {
                     window.player.swapAbility();
                 }
 
-                // 터치 컨트롤 업데이트 (다음 프레임을 위해 이전 상태 저장)
                 this.touchControls.update();
 
-                // 모바일: 터치 입력을 키보드 입력처럼 변환 (이동만 처리)
                 const touchInputs = this.touchControls.getInputs();
 
-                // 커서 키 시뮬레이션 (이동만)
                 inputCursors = {
                     left: { isDown: touchInputs.left },
                     right: { isDown: touchInputs.right },
-                    up: { isDown: false }, // 점프는 위에서 직접 처리
+                    up: { isDown: false },
                     down: { isDown: false }
                 };
 
-                // 액션 키는 더미 (위에서 직접 처리했으므로)
                 inputKeys = {
                     dash: { isDown: false },
                     basicAttack: { isDown: false },
@@ -831,28 +825,20 @@ class Stage2Scene extends Phaser.Scene {
             // 플레이어 업데이트
             window.player.update(inputCursors, inputKeys);
 
-            // 적 업데이트
-            this.enemyList.forEach(enemy => {
-                if (enemy && enemy.isAlive) {
-                    enemy.update();
-                }
-            });
+            // 보스 업데이트
+            if (this.boss && this.boss.isAlive) {
+                this.boss.update();
+            }
 
-            // 사망한 적 제거
-            this.enemyList = this.enemyList.filter(enemy => enemy.isAlive);
-
-            // 보스 스폰 체크
-            this.checkBossSpawn();
-
-            // 플레이어 공격과 적 충돌 체크
+            // 플레이어 공격과 보스 충돌 체크
             const ability = window.player.getCurrentAbility();
-            if (ability && ability.activeAttacks) {
+            if (ability && ability.activeAttacks && this.boss && this.boss.isAlive) {
                 ability.activeAttacks.forEach(attack => {
                     if (attack && attack.active) {
                         this.physics.overlap(
                             attack,
-                            this.enemies,
-                            this.handleAttackEnemyCollision,
+                            this.boss.sprite,
+                            this.handleAttackBossCollision,
                             null,
                             this
                         );
@@ -865,7 +851,6 @@ class Stage2Scene extends Phaser.Scene {
                 if (item && item.isActive) {
                     item.update();
 
-                    // 아이템과 바닥/플랫폼 충돌 설정 (땅 밑으로 떨어지지 않도록)
                     if (item.sprite && item.sprite.body) {
                         this.physics.collide(item.sprite, this.platforms);
                         this.physics.collide(item.sprite, this.groundGroup);
@@ -890,14 +875,13 @@ class Stage2Scene extends Phaser.Scene {
             // UI 업데이트
             this.updateUI();
 
-
         } catch (error) {
-            console.error('Stage2Scene update 오류:', error);
+            console.error('BossRushScene update 오류:', error);
         }
     }
 }
 
 // 전역에서 접근 가능하도록
 if (typeof window !== 'undefined') {
-    window.Stage2Scene = Stage2Scene;
+    window.BossRushScene = BossRushScene;
 }

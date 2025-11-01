@@ -625,7 +625,7 @@ class Player {
                 this.specialSkill();
             }
 
-            // Q/E 키 처리 (모드에 따라 다른 동작)
+            // Q/E 키 처리 - 능력 전환
             const ability = this.getCurrentAbility();
 
             // 일반 모드: 둘 다 능력이 장착되어 있으면 Q/E로 능력 전환
@@ -634,15 +634,6 @@ class Player {
                 if (Phaser.Input.Keyboard.JustDown(keys.abilitySwap1) ||
                     Phaser.Input.Keyboard.JustDown(keys.abilitySwap2)) {
                     this.swapAbility();
-                }
-            }
-            // 캐릭터 선택 모드: 웨폰마스터만 Q/E로 폼 전환
-            else if (ability && ability.name === '웨폰마스터') {
-                if (Phaser.Input.Keyboard.JustDown(keys.abilitySwap1)) {
-                    ability.switchForm('left');
-                }
-                if (Phaser.Input.Keyboard.JustDown(keys.abilitySwap2)) {
-                    ability.switchForm('right');
                 }
             }
 

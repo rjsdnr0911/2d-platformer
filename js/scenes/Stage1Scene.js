@@ -102,6 +102,11 @@ class Stage1Scene extends Phaser.Scene {
             // 미니맵 시스템
             this.minimapSystem = null;
 
+            // 아이템 알림 UI
+            this.itemNotificationUI = null;
+
+            // 패시브 아이템 툴팁 UI
+            this.passiveItemTooltipUI = null;
 
             // 터치 컨트롤 (모바일용)
             this.touchControls = null;
@@ -123,41 +128,36 @@ class Stage1Scene extends Phaser.Scene {
             // 플레이어 생성
             window.player = new Player(this, 100, 400);
 
-            // 게임 모드에 따라 능력 장착
-            const selectedClass = this.registry.get('selectedClass') || 'normal';
+            // 선택된 직업 세트에 따라 능력 장착
+            const selectedJobSet = this.registry.get('selectedJobSet') || 'swordMagic';
 
-            if (selectedClass === 'normal') {
-                // 일반 모드: 근접/마법 전환 (둘 다 장착)
-                const swordAbility = new SwordAbility(this);
-                const magicAbility = new MagicAbility(this);
+            let ability1, ability2;
 
-                window.player.equipAbility(swordAbility, 0);
-                window.player.equipAbility(magicAbility, 1);
-                window.player.setCurrentAbilityIndex(0); // 시작은 근접전사
+            if (selectedJobSet === 'swordMagic') {
+                // 검/마법 세트
+                ability1 = new SwordAbility(this);
+                ability2 = new MagicAbility(this);
 
-                console.log('일반 모드: 근접전사/마법사 전환 가능');
-            } else {
-                // 캐릭터 선택 모드: 선택한 직업만
-                let ability = null;
-
-                switch (selectedClass) {
-                    case 'warrior':
-                        ability = new SwordAbility(this);
-                        break;
-                    case 'wizard':
-                        ability = new MagicAbility(this);
-                        break;
-                    case 'weaponmaster':
-                        ability = new WeaponMasterAbility(this);
-                        break;
-                    default:
-                        ability = new SwordAbility(this);
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log('직업 세트: 검/마법');
                 }
+            } else if (selectedJobSet === 'hammerBow') {
+                // 해머/활 세트
+                ability1 = new HammerAbility(this);
+                ability2 = new BowAbility(this);
 
-                window.player.equipAbility(ability, 0);
-
-                console.log('캐릭터 선택 모드:', selectedClass, '능력:', ability.name);
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log('직업 세트: 해머/활');
+                }
+            } else {
+                // 기본값: 검/마법
+                ability1 = new SwordAbility(this);
+                ability2 = new MagicAbility(this);
             }
+
+            window.player.equipAbility(ability1, 0);
+            window.player.equipAbility(ability2, 1);
+            window.player.setCurrentAbilityIndex(0); // 시작은 첫 번째 능력
 
             // 카메라 설정
             this.setupCamera();
@@ -194,6 +194,11 @@ class Stage1Scene extends Phaser.Scene {
             // 미니맵 시스템 초기화
             this.minimapSystem = new MinimapSystem(this, CONSTANTS.WORLD.WIDTH, CONSTANTS.WORLD.HEIGHT);
 
+            // 아이템 알림 UI 초기화
+            this.itemNotificationUI = new ItemNotificationUI(this);
+
+            // 패시브 아이템 툴팁 UI 초기화
+            this.passiveItemTooltipUI = new PassiveItemTooltipUI(this);
 
             // 터치 컨트롤 초기화 (모바일에서만)
             if (this.isMobile) {
@@ -567,18 +572,8 @@ class Stage1Scene extends Phaser.Scene {
         });
         this.passiveItemsText.setScrollFactor(0);
 
-        // 조작법 (Q/E 전환 추가)
-        // 게임 모드에 따라 다른 가이드 표시
-        const selectedClass = this.registry.get('selectedClass') || 'normal';
-        let controlsGuide = '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격';
-
-        if (selectedClass === 'normal') {
-            // 일반 모드: 직업 전환 가능
-            controlsGuide += ' | Q/E 전환';
-        } else if (selectedClass === 'weaponmaster') {
-            // 웨폰마스터: 폼 전환
-            controlsGuide += ' | Q/E 폼';
-        }
+        // 조작법 (Q/E 전환 포함)
+        const controlsGuide = '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격 | Q/E 전환';
 
         const controlsText = this.add.text(
             CONSTANTS.GAME.WIDTH - 16,
@@ -611,14 +606,7 @@ class Stage1Scene extends Phaser.Scene {
         if (window.player && this.abilityText) {
             const currentAbility = window.player.getCurrentAbility();
             const abilityName = currentAbility ? currentAbility.name : '없음';
-
-            // 웨폰마스터인 경우 현재 폼 표시
-            if (currentAbility && currentAbility.name === '웨폰마스터') {
-                const formName = currentAbility.getCurrentFormName();
-                this.abilityText.setText(`직업: ${abilityName} [${formName}]`);
-            } else {
-                this.abilityText.setText(`직업: ${abilityName}`);
-            }
+            this.abilityText.setText(`직업: ${abilityName}`);
         }
 
         if (window.player && this.cooldownText) {
@@ -647,13 +635,9 @@ class Stage1Scene extends Phaser.Scene {
             }
         }
 
-        if (window.player && this.passiveItemsText) {
-            if (window.player.passiveItems.length > 0) {
-                const itemIcons = window.player.passiveItems.map(item => item.icon).join(' ');
-                this.passiveItemsText.setText(`패시브: ${itemIcons}`);
-            } else {
-                this.passiveItemsText.setText('');
-            }
+        // 패시브 아이템 툴팁 UI 업데이트 (기존 텍스트 대체)
+        if (this.passiveItemTooltipUI) {
+            this.passiveItemTooltipUI.update(16, 144);
         }
     }
 

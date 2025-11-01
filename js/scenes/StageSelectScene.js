@@ -61,10 +61,21 @@ class StageSelectScene extends Phaser.Scene {
                 this.createStageButton(stage, y);
             });
 
+            // 보스 러시 모드 버튼
+            this.createButton(
+                CONSTANTS.GAME.WIDTH / 2,
+                510,
+                '🔥 BOSS RUSH 🔥',
+                () => {
+                    this.startBossRush();
+                },
+                0xFF4444
+            );
+
             // 뒤로 가기 버튼
             this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                550,
+                570,
                 '메인 메뉴',
                 () => {
                     this.scene.start('MainMenuScene');
@@ -246,6 +257,21 @@ class StageSelectScene extends Phaser.Scene {
 
             const stageKey = `Stage${stageNumber}Scene`;
             this.scene.start(stageKey);
+        }
+    }
+
+    startBossRush() {
+        // 게임 모드 확인
+        const gameMode = this.registry.get('gameMode') || 'normal';
+
+        if (gameMode === 'classSelect') {
+            // 캐릭터 선택 모드: 직업 선택 화면으로
+            this.registry.set('selectedStage', 'BossRush');
+            this.scene.start('ClassSelectScene');
+        } else {
+            // 일반 모드: 바로 보스 러시로
+            this.registry.set('selectedClass', 'normal');
+            this.scene.start('BossRushScene');
         }
     }
 

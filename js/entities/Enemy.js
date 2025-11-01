@@ -171,35 +171,35 @@ class Enemy {
         // 능력 오브 드롭 등
     }
 
-    // 아이템 드롭 (40% 확률로 증가)
+    // 아이템 드롭 (30% 확률)
     dropItem() {
         const dropChance = Math.random();
 
-        if (dropChance > 0.4) return; // 60% 확률로 아무것도 드롭 안 함
+        if (dropChance > 0.3) return; // 70% 확률로 아무것도 드롭 안 함
 
         const itemType = Math.random();
         let item = null;
 
-        // 드롭 확률 (체력 아이템 비중 증가)
-        if (itemType < 0.5) {
-            // 50% - 작은 하트
+        // 드롭 확률 분배
+        if (itemType < 0.45) {
+            // 45% - 작은 하트
             item = new SmallHeart(this.scene, this.sprite.x, this.sprite.y);
-        } else if (itemType < 0.75) {
+        } else if (itemType < 0.70) {
             // 25% - 큰 하트
             item = new BigHeart(this.scene, this.sprite.x, this.sprite.y);
-        } else if (itemType < 0.85) {
-            // 10% - 패시브 아이템 (랜덤)
+        } else if (itemType < 0.82) {
+            // 12% - 패시브 아이템 (랜덤)
             const passiveItems = [
                 SpeedBoots, WingedBoots, TimeClock,
                 IronShield, HealthRing, DashGem, PhantomCloak
             ];
             const randomPassive = Phaser.Utils.Array.GetRandom(passiveItems);
             item = new randomPassive(this.scene, this.sprite.x, this.sprite.y);
-        } else if (itemType < 0.95) {
-            // 10% - 맥시멀 토마토
+        } else if (itemType < 0.93) {
+            // 11% - 맥시멀 토마토
             item = new MaximalTomato(this.scene, this.sprite.x, this.sprite.y);
         } else {
-            // 5% - 무적 사탕
+            // 7% - 무적 사탕
             item = new InvincibleCandy(this.scene, this.sprite.x, this.sprite.y);
         }
 

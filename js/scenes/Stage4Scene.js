@@ -114,45 +114,36 @@ class Stage4Scene extends Phaser.Scene {
             // 플레이어 생성
             window.player = new Player(this, 100, 400);
 
-            // 게임 모드에 따라 능력 장착
-            const selectedClass = this.registry.get('selectedClass') || 'normal';
+            // 선택된 직업 세트에 따라 능력 장착
+            const selectedJobSet = this.registry.get('selectedJobSet') || 'swordMagic';
 
-            if (selectedClass === 'normal') {
-                // 일반 모드: 근접/마법 전환 (둘 다 장착)
-                const swordAbility = new SwordAbility(this);
-                const magicAbility = new MagicAbility(this);
+            let ability1, ability2;
 
-                window.player.equipAbility(swordAbility, 0);
-                window.player.equipAbility(magicAbility, 1);
-                window.player.setCurrentAbilityIndex(0); // 시작은 근접전사
+            if (selectedJobSet === 'swordMagic') {
+                // 검/마법 세트
+                ability1 = new SwordAbility(this);
+                ability2 = new MagicAbility(this);
 
                 if (CONSTANTS.GAME.DEBUG) {
-                    console.log('일반 모드: 근접전사/마법사 전환 가능');
+                    console.log('직업 세트: 검/마법');
+                }
+            } else if (selectedJobSet === 'hammerBow') {
+                // 해머/활 세트
+                ability1 = new HammerAbility(this);
+                ability2 = new BowAbility(this);
+
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log('직업 세트: 해머/활');
                 }
             } else {
-                // 캐릭터 선택 모드: 선택한 직업만
-                let ability = null;
-
-                switch (selectedClass) {
-                    case 'warrior':
-                        ability = new SwordAbility(this);
-                        break;
-                    case 'wizard':
-                        ability = new MagicAbility(this);
-                        break;
-                    case 'weaponmaster':
-                        ability = new WeaponMasterAbility(this);
-                        break;
-                    default:
-                        ability = new SwordAbility(this);
-                }
-
-                window.player.equipAbility(ability, 0);
-
-                if (CONSTANTS.GAME.DEBUG) {
-                    console.log('캐릭터 선택 모드:', selectedClass, '능력:', ability.name);
-                }
+                // 기본값: 검/마법
+                ability1 = new SwordAbility(this);
+                ability2 = new MagicAbility(this);
             }
+
+            window.player.equipAbility(ability1, 0);
+            window.player.equipAbility(ability2, 1);
+            window.player.setCurrentAbilityIndex(0); // 시작은 첫 번째 능력
 
             // 카메라 설정
             this.setupCamera();
@@ -510,11 +501,12 @@ class Stage4Scene extends Phaser.Scene {
         });
         this.passiveItemsText.setScrollFactor(0);
 
-        // 조작법 (간략화)
+        // 조작법 (Q/E 전환 포함)
+        const controlsGuide = '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격 | Q/E 전환';
         const controlsText = this.add.text(
             CONSTANTS.GAME.WIDTH - 16,
             16,
-            '← → 이동 | ↑ 점프(x2) | Shift 대시\nZ/X/C 공격',
+            controlsGuide,
             {
                 fontSize: '12px',
                 fill: '#fff',
@@ -542,14 +534,7 @@ class Stage4Scene extends Phaser.Scene {
         if (window.player && this.abilityText) {
             const currentAbility = window.player.getCurrentAbility();
             const abilityName = currentAbility ? currentAbility.name : '없음';
-
-            // 웨폰마스터인 경우 현재 폼 표시
-            if (currentAbility && currentAbility.name === '웨폰마스터') {
-                const formName = currentAbility.getCurrentFormName();
-                this.abilityText.setText(`직업: ${abilityName} [${formName}]`);
-            } else {
-                this.abilityText.setText(`직업: ${abilityName}`);
-            }
+            this.abilityText.setText(`직업: ${abilityName}`);
         }
 
         if (window.player && this.cooldownText) {

@@ -13,6 +13,12 @@ class SmallHeart extends ItemBase {
 
     applyEffect(player) {
         player.heal(10);
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getConsumableItemDescription(this.config.name);
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -29,6 +35,12 @@ class BigHeart extends ItemBase {
 
     applyEffect(player) {
         player.heal(30);
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getConsumableItemDescription(this.config.name);
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -45,6 +57,12 @@ class MaximalTomato extends ItemBase {
 
     applyEffect(player) {
         player.heal(player.maxHp); // 완전 회복
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getConsumableItemDescription(this.config.name);
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
@@ -61,6 +79,12 @@ class InvincibleCandy extends ItemBase {
 
     applyEffect(player) {
         player.grantInvincibility(5000); // 5초 무적
+
+        // 아이템 획득 알림 UI 표시
+        if (this.scene.itemNotificationUI) {
+            const description = ItemNotificationUI.getConsumableItemDescription(this.config.name);
+            this.scene.itemNotificationUI.showItemAcquired(this.config, description);
+        }
     }
 }
 
