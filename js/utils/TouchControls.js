@@ -76,7 +76,7 @@ class TouchControls {
 
         this.buttonTexts.left = this.scene.add.text(
             this.buttons.left.x, this.buttons.left.y, '◀',
-            { fontSize: '44px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '44px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.left.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -92,7 +92,7 @@ class TouchControls {
 
         this.buttonTexts.right = this.scene.add.text(
             this.buttons.right.x, this.buttons.right.y, '▶',
-            { fontSize: '44px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '44px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.right.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -109,7 +109,7 @@ class TouchControls {
 
         this.buttonTexts.jump = this.scene.add.text(
             this.buttons.jump.x, this.buttons.jump.y, 'UP',
-            { fontSize: '19px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '19px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.jump.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -125,7 +125,7 @@ class TouchControls {
 
         this.buttonTexts.dash = this.scene.add.text(
             this.buttons.dash.x, this.buttons.dash.y, 'DASH',
-            { fontSize: '15px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '15px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.dash.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -144,7 +144,7 @@ class TouchControls {
 
         this.buttonTexts.basicAttack = this.scene.add.text(
             this.buttons.basicAttack.x, this.buttons.basicAttack.y, 'Z',
-            { fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.basicAttack.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -160,7 +160,7 @@ class TouchControls {
 
         this.buttonTexts.strongAttack = this.scene.add.text(
             this.buttons.strongAttack.x, this.buttons.strongAttack.y, 'X',
-            { fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.strongAttack.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -179,7 +179,7 @@ class TouchControls {
 
         this.buttonTexts.skill = this.scene.add.text(
             this.buttons.skill.x, this.buttons.skill.y, 'C',
-            { fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '24px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.skill.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -198,7 +198,7 @@ class TouchControls {
 
         this.buttonTexts.abilitySwap1 = this.scene.add.text(
             this.buttons.abilitySwap1.x, this.buttons.abilitySwap1.y, 'Q',
-            { fontSize: '22px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '22px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.abilitySwap1.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
@@ -214,7 +214,7 @@ class TouchControls {
 
         this.buttonTexts.abilitySwap2 = this.scene.add.text(
             this.buttons.abilitySwap2.x, this.buttons.abilitySwap2.y, 'E',
-            { fontSize: '22px', fill: '#fff', fontStyle: 'bold' }
+            { fontFamily: 'Orbitron', fontSize: '22px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.abilitySwap2.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
     }

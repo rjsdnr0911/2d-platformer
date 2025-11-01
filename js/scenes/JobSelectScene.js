@@ -15,6 +15,7 @@ class JobSelectScene extends Phaser.Scene {
                 80,
                 '직업 세트 선택',
                 {
+                    fontFamily: 'Jua',
                     fontSize: '42px',
                     fill: '#fff',
                     fontStyle: 'bold',
@@ -30,6 +31,7 @@ class JobSelectScene extends Phaser.Scene {
                 140,
                 'Q/E 키로 전환 가능한 직업 세트를 선택하세요',
                 {
+                    fontFamily: 'Jua',
                     fontSize: '18px',
                     fill: '#ffff00'
                 }
@@ -123,6 +125,7 @@ class JobSelectScene extends Phaser.Scene {
         if (setData.recommended) {
             const badge = this.add.rectangle(0, -cardHeight / 2 - 20, 100, 30, 0xffaa00);
             const badgeText = this.add.text(0, -cardHeight / 2 - 20, '추천', {
+                fontFamily: 'Jua',
                 fontSize: '16px',
                 fill: '#fff',
                 fontStyle: 'bold'
@@ -136,6 +139,7 @@ class JobSelectScene extends Phaser.Scene {
 
         // 세트 이름
         const setName = this.add.text(0, -cardHeight / 2 + 30, setData.name, {
+            fontFamily: 'Jua',
             fontSize: '22px',
             fill: '#fff',
             fontStyle: 'bold'
@@ -144,6 +148,7 @@ class JobSelectScene extends Phaser.Scene {
 
         // 세트 설명
         const description = this.add.text(0, -cardHeight / 2 + 80, setData.description, {
+            fontFamily: 'Jua',
             fontSize: '14px',
             fill: '#cccccc',
             align: 'center',
@@ -155,6 +160,7 @@ class JobSelectScene extends Phaser.Scene {
         // 직업 목록
         let jobListY = -cardHeight / 2 + 150;
         const jobListTitle = this.add.text(-cardWidth / 2 + 15, jobListY, '[ 포함 직업 ]', {
+            fontFamily: 'Jua',
             fontSize: '14px',
             fill: setData.color,
             fontStyle: 'bold'
@@ -163,6 +169,7 @@ class JobSelectScene extends Phaser.Scene {
 
         setData.jobs.forEach(job => {
             const jobText = this.add.text(-cardWidth / 2 + 15, jobListY, `• ${job.name}: ${job.description}`, {
+                fontFamily: 'Jua',
                 fontSize: '12px',
                 fill: '#aaaaaa',
                 wordWrap: { width: cardWidth - 30 }
@@ -173,6 +180,7 @@ class JobSelectScene extends Phaser.Scene {
         // 특징 목록
         jobListY += 10;
         const featureTitle = this.add.text(-cardWidth / 2 + 15, jobListY, '[ 특징 ]', {
+            fontFamily: 'Jua',
             fontSize: '14px',
             fill: setData.color,
             fontStyle: 'bold'
@@ -181,6 +189,7 @@ class JobSelectScene extends Phaser.Scene {
 
         setData.features.forEach(feature => {
             const featureText = this.add.text(-cardWidth / 2 + 15, jobListY, feature, {
+                fontFamily: 'Jua',
                 fontSize: '12px',
                 fill: '#999999'
             });
@@ -192,6 +201,7 @@ class JobSelectScene extends Phaser.Scene {
         selectButton.setInteractive({ useHandCursor: true });
 
         const selectButtonText = this.add.text(0, cardHeight / 2 - 30, '선택하기 ▶', {
+            fontFamily: 'Jua',
             fontSize: '18px',
             fill: '#fff',
             fontStyle: 'bold'
@@ -281,6 +291,7 @@ class JobSelectScene extends Phaser.Scene {
         button.setInteractive({ useHandCursor: true });
 
         const buttonText = this.add.text(80, 550, '← 뒤로가기', {
+            fontFamily: 'Jua',
             fontSize: '18px',
             fill: '#fff',
             fontStyle: 'bold'

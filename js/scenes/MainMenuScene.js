@@ -15,6 +15,7 @@ class MainMenuScene extends Phaser.Scene {
                 150,
                 'NEXUS',
                 {
+                    fontFamily: 'Orbitron',
                     fontSize: '64px',
                     fill: '#00FFFF',
                     fontStyle: 'bold',
@@ -40,6 +41,7 @@ class MainMenuScene extends Phaser.Scene {
                 220,
                 '능력을 바꿔가며 적을 물리쳐라!',
                 {
+                    fontFamily: 'Jua',
                     fontSize: '20px',
                     fill: '#ffff00'
                 }
@@ -84,6 +86,7 @@ class MainMenuScene extends Phaser.Scene {
                 430,
                 '',
                 {
+                    fontFamily: 'Jua',
                     fontSize: '14px',
                     fill: '#fff',
                     backgroundColor: '#00000088',
@@ -100,6 +103,7 @@ class MainMenuScene extends Phaser.Scene {
                 CONSTANTS.GAME.HEIGHT - 10,
                 'v0.5.0 - Phase 5 (진행중)',
                 {
+                    fontFamily: 'Orbitron',
                     fontSize: '14px',
                     fill: '#888'
                 }
@@ -125,6 +129,7 @@ class MainMenuScene extends Phaser.Scene {
 
         // 버튼 텍스트
         const buttonText = this.add.text(x, y, text, {
+            fontFamily: 'Jua',
             fontSize: '24px',
             fill: '#fff',
             fontStyle: 'bold'
@@ -187,6 +192,7 @@ class MainMenuScene extends Phaser.Scene {
             y - 30,
             '[ 난이도 ]',
             {
+                fontFamily: 'Jua',
                 fontSize: '18px',
                 fill: '#fff',
                 fontStyle: 'bold'
@@ -220,6 +226,7 @@ class MainMenuScene extends Phaser.Scene {
                 y,
                 diff.name,
                 {
+                    fontFamily: 'Jua',
                     fontSize: '20px',
                     fill: isSelected ? '#000' : '#fff',
                     fontStyle: 'bold'
@@ -320,6 +327,7 @@ class MainMenuScene extends Phaser.Scene {
             margin + buttonSize / 2,
             this.scale.isFullscreen ? '⊡' : '⊞',
             {
+                fontFamily: 'Orbitron',
                 fontSize: '24px',
                 fill: '#fff',
                 fontStyle: 'bold'
