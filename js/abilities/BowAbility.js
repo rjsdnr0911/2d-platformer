@@ -46,6 +46,9 @@ class BowAbility extends AbilityBase {
             arrow2.angle = direction > 0 ? 0 : 180;
 
             this.activeAttacks.push(arrow2);
+
+            // 화살 궤적 파티클
+            this.createArrowTrail(arrow2);
         }
 
         if (CONSTANTS.GAME.DEBUG) {
@@ -80,11 +83,17 @@ class BowAbility extends AbilityBase {
             repeat: -1
         });
 
-        // 차징 완료 체크
+        // 차징 완료 체크 및 이펙트 위치 업데이트
         const checkRelease = this.scene.time.addEvent({
             delay: 50,
             repeat: -1,
             callback: () => {
+                // 이펙트를 플레이어 위치로 이동
+                if (chargeEffect && chargeEffect.active && this.owner) {
+                    chargeEffect.x = this.owner.sprite.x;
+                    chargeEffect.y = this.owner.sprite.y;
+                }
+
                 // 키를 뗐거나 최대 차징 시간 도달
                 const currentTime = this.scene.time.now;
                 const chargeTime = currentTime - this.chargeStartTime;
@@ -247,6 +256,41 @@ class BowAbility extends AbilityBase {
             splitArrow.setData('range', 150);
 
             this.activeAttacks.push(splitArrow);
+        });
+    }
+
+    // 화살 궤적 파티클
+    createArrowTrail(arrow) {
+        const particleInterval = this.scene.time.addEvent({
+            delay: 50,
+            repeat: -1,
+            callback: () => {
+                if (!arrow || !arrow.active) {
+                    particleInterval.remove();
+                    return;
+                }
+
+                // 화살 뒤 파티클
+                for (let i = 0; i < 2; i++) {
+                    const particle = this.scene.add.circle(
+                        arrow.x,
+                        arrow.y + (Math.random() * 6 - 3),
+                        1 + Math.random(),
+                        0x8B4513,
+                        0.5
+                    );
+
+                    this.scene.tweens.add({
+                        targets: particle,
+                        alpha: 0,
+                        scale: 0,
+                        duration: 150,
+                        onComplete: () => {
+                            particle.destroy();
+                        }
+                    });
+                }
+            }
         });
     }
 

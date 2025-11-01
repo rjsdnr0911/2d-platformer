@@ -55,6 +55,7 @@ class TouchControls {
         const buttonAlpha = 0.5; // 기본 투명도 (더 투명하게)
         const buttonPressedAlpha = 0.85; // 눌렸을 때 투명도
         const buttonSize = 70; // 55 → 70 (27% 확대)
+        const moveButtonSize = 90; // 좌우 이동 버튼은 더 크게 (90px)
         const smallButtonSize = 58; // 45 → 58 (29% 확대)
         const margin = 20; // 16 → 20 (여유 공간 증가)
 
@@ -63,11 +64,11 @@ class TouchControls {
         this.buttonPressedAlpha = buttonPressedAlpha;
 
         // === 좌측: 이동 버튼 ===
-        // 왼쪽 버튼
+        // 왼쪽 버튼 (크기 증가)
         this.buttons.left = this.scene.add.circle(
-            margin + buttonSize / 2,
-            CONSTANTS.GAME.HEIGHT - margin - buttonSize / 2,
-            buttonSize / 2,
+            margin + moveButtonSize / 2,
+            CONSTANTS.GAME.HEIGHT - margin - moveButtonSize / 2,
+            moveButtonSize / 2,
             0x555555,
             buttonAlpha
         );
@@ -75,15 +76,15 @@ class TouchControls {
 
         this.buttonTexts.left = this.scene.add.text(
             this.buttons.left.x, this.buttons.left.y, '◀',
-            { fontSize: '36px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '44px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.left.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 
-        // 오른쪽 버튼
+        // 오른쪽 버튼 (크기 증가)
         this.buttons.right = this.scene.add.circle(
-            margin + buttonSize / 2 + buttonSize + 12,
-            CONSTANTS.GAME.HEIGHT - margin - buttonSize / 2,
-            buttonSize / 2,
+            margin + moveButtonSize / 2 + moveButtonSize + 12,
+            CONSTANTS.GAME.HEIGHT - margin - moveButtonSize / 2,
+            moveButtonSize / 2,
             0x555555,
             buttonAlpha
         );
@@ -91,7 +92,7 @@ class TouchControls {
 
         this.buttonTexts.right = this.scene.add.text(
             this.buttons.right.x, this.buttons.right.y, '▶',
-            { fontSize: '36px', fill: '#fff', fontStyle: 'bold' }
+            { fontSize: '44px', fill: '#fff', fontStyle: 'bold' }
         );
         this.buttonTexts.right.setOrigin(0.5).setScrollFactor(0).setDepth(3001);
 

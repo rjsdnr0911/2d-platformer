@@ -43,6 +43,9 @@ class HammerAbility extends AbilityBase {
                     shockwave.destroy();
                 }
             });
+
+            // 충격파 파티클
+            this.createGroundHitParticles(shockwave.x, shockwave.y);
         }
 
         if (CONSTANTS.GAME.DEBUG) {
@@ -251,6 +254,82 @@ class HammerAbility extends AbilityBase {
 
         // 강한 화면 흔들림
         this.scene.cameras.main.shake(400, 0.01);
+
+        // 거대 충격파 파티클
+        this.createMassiveShockParticles(playerX, playerY);
+    }
+
+    // 지면 타격 파티클
+    createGroundHitParticles(x, y) {
+        for (let i = 0; i < 10; i++) {
+            const particle = this.scene.add.circle(
+                x + (Math.random() * 30 - 15),
+                y + (Math.random() * 10 - 5),
+                2 + Math.random() * 2,
+                0x888888,
+                0.7
+            );
+
+            this.scene.tweens.add({
+                targets: particle,
+                y: particle.y - 20 - Math.random() * 20,
+                x: particle.x + (Math.random() * 40 - 20),
+                alpha: 0,
+                scale: 0,
+                duration: 300 + Math.random() * 200,
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
+        }
+    }
+
+    // 거대 충격파 파티클
+    createMassiveShockParticles(x, y) {
+        // 폭발 링
+        for (let r = 0; r < 3; r++) {
+            const radius = 50 + r * 40;
+            const delay = r * 100;
+
+            this.scene.time.delayedCall(delay, () => {
+                const ring = this.scene.add.circle(x, y, radius, 0xFF8800, 0.3);
+                this.scene.tweens.add({
+                    targets: ring,
+                    scale: 1.5,
+                    alpha: 0,
+                    duration: 300,
+                    onComplete: () => {
+                        ring.destroy();
+                    }
+                });
+            });
+        }
+
+        // 파편 파티클
+        for (let i = 0; i < 40; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 100 + Math.random() * 100;
+
+            const particle = this.scene.add.circle(
+                x,
+                y,
+                3 + Math.random() * 3,
+                Math.random() > 0.5 ? 0x888888 : 0xFFAA00,
+                0.8
+            );
+
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * speed,
+                y: y + Math.sin(angle) * speed,
+                alpha: 0,
+                scale: 0,
+                duration: 500 + Math.random() * 300,
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
+        }
     }
 
     // 능력 교체 시 호출

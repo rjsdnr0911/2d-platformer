@@ -27,6 +27,9 @@ class MagicAbility extends AbilityBase {
                 duration: 500,
                 repeat: -1
             });
+
+            // 화염구 궤적 파티클
+            this.createFireballTrail(fireball);
         }
 
         if (CONSTANTS.GAME.DEBUG) {
@@ -80,6 +83,9 @@ class MagicAbility extends AbilityBase {
                 duration: 150,
                 ease: 'Cubic.easeOut',
                 onComplete: () => {
+                    // 화염 기둥 주변 파티클 효과
+                    this.createPillarParticles(pillar.x, pillar.y);
+
                     // 잠시 유지 후 사라짐
                     this.scene.time.delayedCall(200, () => {
                         this.scene.tweens.add({
@@ -201,8 +207,111 @@ class MagicAbility extends AbilityBase {
             }
         });
 
+        // 폭발 파티클 효과
+        this.createExplosionParticles(playerX, playerY);
+
         if (CONSTANTS.GAME.DEBUG) {
             console.log('마법: 불폭풍');
+        }
+    }
+
+    // 화염구 궤적 파티클
+    createFireballTrail(fireball) {
+        const particleInterval = this.scene.time.addEvent({
+            delay: 40,
+            repeat: -1,
+            callback: () => {
+                if (!fireball || !fireball.active) {
+                    particleInterval.remove();
+                    return;
+                }
+
+                // 화염 파티클 생성
+                for (let i = 0; i < 2; i++) {
+                    const particle = this.scene.add.circle(
+                        fireball.x + (Math.random() * 10 - 5),
+                        fireball.y + (Math.random() * 10 - 5),
+                        2 + Math.random() * 2,
+                        Math.random() > 0.5 ? 0xFF6600 : 0xFF0000,
+                        0.8
+                    );
+
+                    this.scene.tweens.add({
+                        targets: particle,
+                        alpha: 0,
+                        scale: 0,
+                        duration: 200,
+                        onComplete: () => {
+                            particle.destroy();
+                        }
+                    });
+                }
+            }
+        });
+    }
+
+    // 화염 기둥 파티클
+    createPillarParticles(x, y) {
+        for (let i = 0; i < 15; i++) {
+            const particle = this.scene.add.circle(
+                x + (Math.random() * 40 - 20),
+                y + (Math.random() * 50 - 25),
+                2 + Math.random() * 3,
+                Math.random() > 0.5 ? 0xFF3300 : 0xFFAA00,
+                0.7
+            );
+
+            this.scene.tweens.add({
+                targets: particle,
+                y: particle.y - 50 - Math.random() * 30,
+                alpha: 0,
+                scale: 0,
+                duration: 300 + Math.random() * 200,
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
+        }
+    }
+
+    // 폭발 파티클
+    createExplosionParticles(x, y) {
+        // 중심부 밝은 플래시
+        const flash = this.scene.add.circle(x, y, 20, 0xFFFFFF, 0.8);
+        this.scene.tweens.add({
+            targets: flash,
+            scale: 3,
+            alpha: 0,
+            duration: 200,
+            onComplete: () => {
+                flash.destroy();
+            }
+        });
+
+        // 사방으로 퍼지는 화염 파티클
+        for (let i = 0; i < 30; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const speed = 50 + Math.random() * 100;
+
+            const particle = this.scene.add.circle(
+                x,
+                y,
+                3 + Math.random() * 3,
+                Math.random() > 0.5 ? 0xFF6600 : 0xFF0000,
+                0.8
+            );
+
+            this.scene.tweens.add({
+                targets: particle,
+                x: x + Math.cos(angle) * speed,
+                y: y + Math.sin(angle) * speed,
+                alpha: 0,
+                scale: 0,
+                duration: 400 + Math.random() * 200,
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
         }
     }
 

@@ -52,6 +52,9 @@ class SwordAbility extends AbilityBase {
             150 // 지속 시간
         );
 
+        // 검기 파티클 효과
+        this.createSlashParticles(0xC0C0C0); // 은색
+
         // 플레이어를 더 빠르게 앞으로 이동
         if (this.owner.facingRight) {
             this.owner.sprite.body.setVelocityX(150); // 100 → 150
@@ -71,6 +74,9 @@ class SwordAbility extends AbilityBase {
             this.config.BASIC_DAMAGE + 2,
             150
         );
+
+        // 검기 파티클 효과 (밝은 은색)
+        this.createSlashParticles(0xE0E0E0);
 
         // 더 빠르게 이동
         if (this.owner.facingRight) {
@@ -99,6 +105,9 @@ class SwordAbility extends AbilityBase {
             this.owner.sprite.body.setVelocityX(-220);
         }
 
+        // 강력한 황금 파티클 효과
+        this.createSlashParticles(0xFFD700);
+
         // 이펙트 (회전 공격 느낌)
         this.scene.tweens.add({
             targets: this.owner.sprite,
@@ -126,6 +135,17 @@ class SwordAbility extends AbilityBase {
             this.config.STRONG_DAMAGE,
             300
         );
+
+        // 회전 중 파티클 효과 (연속 생성)
+        let particleCount = 0;
+        const particleInterval = this.scene.time.addEvent({
+            delay: 50,
+            repeat: 5,
+            callback: () => {
+                this.createCircularSlashParticles(0x87CEEB, particleCount * 60);
+                particleCount++;
+            }
+        });
 
         // 회전 애니메이션
         this.scene.tweens.add({
@@ -161,7 +181,7 @@ class SwordAbility extends AbilityBase {
         this.owner.isInvincible = true;
         this.owner.sprite.setAlpha(0.7);
 
-        // 돌진 경로에 히트박스 생성 (여러 개)
+        // 돌진 경로에 히트박스 및 파티클 생성 (여러 개)
         let hitboxInterval = this.scene.time.addEvent({
             delay: 50,
             repeat: dashDuration / 50 - 1,
@@ -172,6 +192,9 @@ class SwordAbility extends AbilityBase {
                     this.config.SKILL_DAMAGE / 3, // 여러 번 맞을 수 있으니 낮춤
                     100
                 );
+
+                // 돌진 궤적 파티클
+                this.createDashTrailParticles();
             }
         });
 
@@ -236,6 +259,39 @@ class SwordAbility extends AbilityBase {
             repeat: -1
         });
 
+        // 검기 궤적 파티클 효과
+        const particleInterval = this.scene.time.addEvent({
+            delay: 30,
+            repeat: -1,
+            callback: () => {
+                if (!beam || !beam.active) {
+                    particleInterval.remove();
+                    return;
+                }
+
+                // 검기 뒤에 파티클 생성
+                for (let i = 0; i < 3; i++) {
+                    const particle = this.scene.add.circle(
+                        beam.x + (Math.random() * 10 - 5),
+                        beam.y + (Math.random() * 10 - 5),
+                        2 + Math.random() * 2,
+                        0xFFFF00,
+                        0.7
+                    );
+
+                    this.scene.tweens.add({
+                        targets: particle,
+                        alpha: 0,
+                        scale: 0,
+                        duration: 150,
+                        onComplete: () => {
+                            particle.destroy();
+                        }
+                    });
+                }
+            }
+        });
+
         // 일정 거리 이동 후 제거
         this.scene.time.delayedCall(beamDistance / beamSpeed * 1000, () => {
             if (beam && beam.active) {
@@ -271,6 +327,98 @@ class SwordAbility extends AbilityBase {
                 this.owner.sprite.setAlpha(1);
             }
         });
+    }
+
+    // 검기 파티클 효과
+    createSlashParticles(color) {
+        if (!this.owner) return;
+
+        const direction = this.owner.facingRight ? 1 : -1;
+        const startX = this.owner.sprite.x + (30 * direction);
+        const startY = this.owner.sprite.y;
+
+        // 파티클 생성 (10~15개)
+        for (let i = 0; i < 12; i++) {
+            const particle = this.scene.add.circle(
+                startX + (Math.random() * 30 - 15),
+                startY + (Math.random() * 30 - 15),
+                2 + Math.random() * 3,
+                color,
+                0.8
+            );
+
+            // 파티클 애니메이션
+            this.scene.tweens.add({
+                targets: particle,
+                x: startX + (40 + Math.random() * 40) * direction,
+                y: startY + (Math.random() * 40 - 20),
+                alpha: 0,
+                scale: 0,
+                duration: 200 + Math.random() * 100,
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
+        }
+    }
+
+    // 원형 회전 파티클 효과
+    createCircularSlashParticles(color, angleOffset = 0) {
+        if (!this.owner) return;
+
+        const playerX = this.owner.sprite.x;
+        const playerY = this.owner.sprite.y;
+        const radius = 50;
+
+        // 원 주위에 파티클 배치
+        for (let i = 0; i < 8; i++) {
+            const angle = (i * 45 + angleOffset) * Math.PI / 180;
+            const x = playerX + Math.cos(angle) * radius;
+            const y = playerY + Math.sin(angle) * radius;
+
+            const particle = this.scene.add.circle(x, y, 3, color, 0.8);
+
+            this.scene.tweens.add({
+                targets: particle,
+                x: playerX + Math.cos(angle) * (radius + 30),
+                y: playerY + Math.sin(angle) * (radius + 30),
+                alpha: 0,
+                scale: 0,
+                duration: 200,
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
+        }
+    }
+
+    // 돌진 궤적 파티클
+    createDashTrailParticles() {
+        if (!this.owner) return;
+
+        const playerX = this.owner.sprite.x;
+        const playerY = this.owner.sprite.y;
+
+        // 잔상 파티클
+        for (let i = 0; i < 5; i++) {
+            const particle = this.scene.add.circle(
+                playerX + (Math.random() * 20 - 10),
+                playerY + (Math.random() * 20 - 10),
+                3 + Math.random() * 2,
+                0x00FFFF,
+                0.6
+            );
+
+            this.scene.tweens.add({
+                targets: particle,
+                alpha: 0,
+                scale: 0,
+                duration: 200,
+                onComplete: () => {
+                    particle.destroy();
+                }
+            });
+        }
     }
 
     // 능력 교체 시 호출
