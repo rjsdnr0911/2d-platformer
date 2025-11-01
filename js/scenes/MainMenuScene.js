@@ -13,16 +13,26 @@ class MainMenuScene extends Phaser.Scene {
             const title = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
                 150,
-                '2D PLATFORMER',
+                'NEXUS',
                 {
-                    fontSize: '48px',
-                    fill: '#fff',
+                    fontSize: '64px',
+                    fill: '#00FFFF',
                     fontStyle: 'bold',
                     stroke: '#000',
-                    strokeThickness: 6
+                    strokeThickness: 8
                 }
             );
             title.setOrigin(0.5);
+
+            // 타이틀 빛나는 효과
+            this.tweens.add({
+                targets: title,
+                alpha: 0.7,
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
 
             // 부제
             const subtitle = this.add.text(
