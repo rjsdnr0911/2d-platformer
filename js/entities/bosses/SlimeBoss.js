@@ -1,8 +1,8 @@
 // Slime Boss (슬라임 킹)
-class SlimeBoss extends Enemy {
+class SlimeBoss extends BaseBoss {
     constructor(scene, x, y) {
-        // 보스 스탯
-        const bossConfig = {
+        // 적 스탯
+        const enemyConfig = {
             WIDTH: 80,
             HEIGHT: 80,
             HP: 400,
@@ -11,7 +11,13 @@ class SlimeBoss extends Enemy {
             COLOR: 0x00FF00
         };
 
-        super(scene, x, y, bossConfig);
+        // 보스 설정
+        const bossConfig = {
+            name: 'SLIME KING',
+            color: 0x00FF00
+        };
+
+        super(scene, x, y, bossConfig, enemyConfig);
 
         // Rectangle sprite 제거
         if (this.sprite) {
@@ -37,12 +43,6 @@ class SlimeBoss extends Enemy {
         this.sprite.setData('type', 'enemy');
         this.sprite.setData('damage', this.damage);
 
-        // 보스 전용 속성
-        this.isBoss = true;
-        this.bossName = 'SLIME KING';
-        this.maxHp = this.hp;
-        this.phase = 1; // 페이즈 (1 or 2)
-
         // 공격 패턴
         this.currentPattern = null;
         this.patternCooldown = 0;
@@ -52,15 +52,8 @@ class SlimeBoss extends Enemy {
         // 소환된 미니언
         this.minions = [];
 
-        // 보스 체력바 생성
-        this.createHealthBar();
-
         // 보스 오라 생성
         this.createAura();
-
-        if (CONSTANTS.GAME.DEBUG) {
-            console.log('슬라임 킹 생성:', this.maxHp, 'HP');
-        }
     }
 
     // 보스 오라 (지속적인 파티클 효과)
@@ -144,81 +137,12 @@ class SlimeBoss extends Enemy {
         });
     }
 
-    createHealthBar() {
-        // 보스 이름 텍스트
-        this.nameText = this.scene.add.text(
-            CONSTANTS.GAME.WIDTH / 2,
-            50,
-            this.bossName,
-            {
-                fontSize: '24px',
-                fill: '#ffff00',
-                fontStyle: 'bold',
-                stroke: '#000',
-                strokeThickness: 4
-            }
-        );
-        this.nameText.setOrigin(0.5);
-        this.nameText.setScrollFactor(0);
-        this.nameText.setDepth(1000);
-
-        // 체력바 배경
-        this.healthBarBg = this.scene.add.rectangle(
-            CONSTANTS.GAME.WIDTH / 2,
-            75,
-            400,
-            20,
-            0x333333
-        );
-        this.healthBarBg.setScrollFactor(0);
-        this.healthBarBg.setDepth(1000);
-
-        // 체력바
-        this.healthBarFill = this.scene.add.rectangle(
-            CONSTANTS.GAME.WIDTH / 2,
-            75,
-            400,
-            20,
-            0x00ff00
-        );
-        this.healthBarFill.setScrollFactor(0);
-        this.healthBarFill.setDepth(1001);
-
-        // 체력 텍스트
-        this.healthText = this.scene.add.text(
-            CONSTANTS.GAME.WIDTH / 2,
-            75,
-            `${this.hp}/${this.maxHp}`,
-            {
-                fontSize: '14px',
-                fill: '#fff',
-                fontStyle: 'bold'
-            }
-        );
-        this.healthText.setOrigin(0.5);
-        this.healthText.setScrollFactor(0);
-        this.healthText.setDepth(1002);
-    }
-
     updateHealthBar() {
-        if (!this.healthBarFill || !this.healthText) return;
+        // BaseBoss의 updateHealthBar 호출
+        super.updateHealthBar();
 
+        // 페이즈 체크 (SlimeBoss 전용)
         const hpRatio = this.hp / this.maxHp;
-        this.healthBarFill.setScale(hpRatio, 1);
-        this.healthBarFill.x = (CONSTANTS.GAME.WIDTH / 2) - (200 * (1 - hpRatio));
-
-        // 체력에 따라 색상 변경
-        if (hpRatio > 0.5) {
-            this.healthBarFill.setFillStyle(0x00ff00);
-        } else if (hpRatio > 0.25) {
-            this.healthBarFill.setFillStyle(0xffaa00);
-        } else {
-            this.healthBarFill.setFillStyle(0xff0000);
-        }
-
-        this.healthText.setText(`${this.hp}/${this.maxHp}`);
-
-        // 페이즈 체크
         if (this.phase === 1 && hpRatio <= 0.5) {
             this.enterPhase2();
         }
@@ -324,10 +248,7 @@ class SlimeBoss extends Enemy {
         }
     }
 
-    takeDamage(damage) {
-        super.takeDamage(damage);
-        this.updateHealthBar();
-    }
+    // BaseBoss에서 이미 takeDamage와 updateHealthBar를 처리하므로 제거
 
     updateAI() {
         if (!this.isAlive || this.isHit || this.isExecutingPattern) return;
@@ -637,6 +558,14 @@ class SlimeBoss extends Enemy {
 
         this.minions.push(minion);
 
+        // BossRushScene의 플랫폼과 충돌 설정
+        if (this.scene.platforms) {
+            this.scene.physics.add.collider(minion.sprite, this.scene.platforms);
+        }
+        if (this.scene.groundGroup) {
+            this.scene.physics.add.collider(minion.sprite, this.scene.groundGroup);
+        }
+
         // Scene의 enemies 그룹에 추가
         if (this.scene.enemies) {
             this.scene.enemies.add(minion.sprite);
@@ -645,6 +574,10 @@ class SlimeBoss extends Enemy {
         // Scene의 enemyList에 추가
         if (this.scene.enemyList) {
             this.scene.enemyList.push(minion);
+        }
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('미니언 소환됨, 위치:', minion.sprite.x, minion.sprite.y);
         }
     }
 
@@ -829,12 +762,6 @@ class SlimeBoss extends Enemy {
             });
         });
 
-        // 보스 UI 제거
-        if (this.nameText) this.nameText.destroy();
-        if (this.healthBarBg) this.healthBarBg.destroy();
-        if (this.healthBarFill) this.healthBarFill.destroy();
-        if (this.healthText) this.healthText.destroy();
-
         // 미니언 제거
         this.minions.forEach(minion => {
             if (minion && minion.isAlive) {
@@ -851,16 +778,12 @@ class SlimeBoss extends Enemy {
     }
 
     destroy() {
-        if (this.nameText) this.nameText.destroy();
-        if (this.healthBarBg) this.healthBarBg.destroy();
-        if (this.healthBarFill) this.healthBarFill.destroy();
-        if (this.healthText) this.healthText.destroy();
-
         // 오라 타이머 제거
         if (this.auraTimer) this.auraTimer.remove();
         if (this.auraUpdateTimer) this.auraUpdateTimer.remove();
         if (this.auraPulse) this.auraPulse.destroy();
 
+        // BaseBoss의 destroy 호출 (UI 정리 포함)
         super.destroy();
     }
 }

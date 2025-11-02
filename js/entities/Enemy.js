@@ -222,14 +222,53 @@ class Enemy {
             this.direction *= -1;
         }
 
+        // 맵 경계에서 방향 전환 (enforceMapBounds에서 위치는 제한하고, 여기서는 방향만 전환)
+        const margin = 50;
+        if (this.sprite.x <= margin && this.direction === -1) {
+            this.direction = 1; // 오른쪽으로 방향 전환
+        } else if (this.sprite.x >= CONSTANTS.WORLD.WIDTH - margin && this.direction === 1) {
+            this.direction = -1; // 왼쪽으로 방향 전환
+        }
+
         // 이동
         this.sprite.body.setVelocityX(this.speed * this.direction);
+    }
+
+    // 맵 경계 강제 체크 (넉백, 스킬 등 강제 이동 중에도 적용)
+    enforceMapBounds() {
+        if (!this.sprite || !this.sprite.body) return;
+
+        const margin = 50;
+
+        // X축 경계 체크
+        if (this.sprite.x < margin) {
+            this.sprite.x = margin;
+            // 속도가 왼쪽으로 가고 있으면 정지
+            if (this.sprite.body.velocity.x < 0) {
+                this.sprite.body.setVelocityX(0);
+            }
+        } else if (this.sprite.x > CONSTANTS.WORLD.WIDTH - margin) {
+            this.sprite.x = CONSTANTS.WORLD.WIDTH - margin;
+            // 속도가 오른쪽으로 가고 있으면 정지
+            if (this.sprite.body.velocity.x > 0) {
+                this.sprite.body.setVelocityX(0);
+            }
+        }
+
+        // Y축 경계 체크 (적이 맵 아래로 떨어지는 것 방지)
+        if (this.sprite.y > CONSTANTS.WORLD.HEIGHT - margin) {
+            this.sprite.y = CONSTANTS.WORLD.HEIGHT - margin;
+            this.sprite.body.setVelocityY(0);
+        }
     }
 
     // 업데이트
     update() {
         if (!this.sprite || !this.sprite.active) return;
         if (!this.isAlive) return;
+
+        // 매 프레임 맵 경계 강제 체크 (넉백 등으로 튕겨나갈 때도 적용)
+        this.enforceMapBounds();
 
         try {
             this.updateAI();

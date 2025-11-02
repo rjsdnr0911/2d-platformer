@@ -18,6 +18,7 @@ class StageSelectScene extends Phaser.Scene {
                 80,
                 'STAGE SELECT',
                 {
+                    fontFamily: 'Orbitron',
                     fontSize: '42px',
                     fill: '#fff',
                     fontStyle: 'bold',
@@ -90,6 +91,7 @@ class StageSelectScene extends Phaser.Scene {
                     CONSTANTS.GAME.HEIGHT - 10,
                     '진행도 초기화',
                     {
+                        fontFamily: 'Jua',
                         fontSize: '12px',
                         fill: '#ff0000',
                         backgroundColor: '#000',
@@ -139,6 +141,7 @@ class StageSelectScene extends Phaser.Scene {
 
         // 스테이지 번호
         const numberText = this.add.text(-220, -25, `${stage.number}`, {
+            fontFamily: 'Orbitron',
             fontSize: '48px',
             fill: '#fff',
             fontStyle: 'bold'
@@ -147,6 +150,7 @@ class StageSelectScene extends Phaser.Scene {
 
         // 스테이지 이름
         const nameText = this.add.text(-100, -25, stage.name, {
+            fontFamily: 'Jua',
             fontSize: '20px',
             fill: '#fff',
             fontStyle: 'bold'
@@ -155,6 +159,7 @@ class StageSelectScene extends Phaser.Scene {
 
         // 보스 이름
         const bossText = this.add.text(-100, 5, `보스: ${stage.boss}`, {
+            fontFamily: 'Jua',
             fontSize: '14px',
             fill: '#ffff00'
         });
@@ -174,6 +179,7 @@ class StageSelectScene extends Phaser.Scene {
             const bestTime = this.saveData.bestTimes[stage.number];
             if (bestTime) {
                 const timeText = this.add.text(-100, 25, `최단 기록: ${this.formatTime(bestTime)}`, {
+                    fontFamily: 'Jua',
                     fontSize: '12px',
                     fill: '#aaaaaa'
                 });
@@ -208,6 +214,7 @@ class StageSelectScene extends Phaser.Scene {
         button.setInteractive({ useHandCursor: true });
 
         const buttonText = this.add.text(x, y, text, {
+            fontFamily: 'Jua',
             fontSize: '20px',
             fill: '#fff',
             fontStyle: 'bold'

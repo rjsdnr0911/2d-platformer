@@ -12,7 +12,7 @@ class JobSelectScene extends Phaser.Scene {
             // 타이틀
             const title = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                80,
+                50,
                 '직업 세트 선택',
                 {
                     fontFamily: 'Jua',
@@ -28,7 +28,7 @@ class JobSelectScene extends Phaser.Scene {
             // 안내 텍스트
             const guide = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                140,
+                110,
                 'Q/E 키로 전환 가능한 직업 세트를 선택하세요',
                 {
                     fontFamily: 'Jua',
@@ -89,7 +89,7 @@ class JobSelectScene extends Phaser.Scene {
 
     createJobSetCards() {
         const centerX = CONSTANTS.GAME.WIDTH / 2;
-        const cardY = 320;
+        const cardY = 340;
         const cardSpacing = 280;
 
         // 검/마법 세트 카드 (왼쪽)
@@ -165,8 +165,10 @@ class JobSelectScene extends Phaser.Scene {
             fill: setData.color,
             fontStyle: 'bold'
         });
+        jobListTitle.setOrigin(0, 0);
         jobListY += 25;
 
+        const jobTexts = [];
         setData.jobs.forEach(job => {
             const jobText = this.add.text(-cardWidth / 2 + 15, jobListY, `• ${job.name}: ${job.description}`, {
                 fontFamily: 'Jua',
@@ -174,6 +176,8 @@ class JobSelectScene extends Phaser.Scene {
                 fill: '#aaaaaa',
                 wordWrap: { width: cardWidth - 30 }
             });
+            jobText.setOrigin(0, 0);
+            jobTexts.push(jobText);
             jobListY += 28;
         });
 
@@ -185,14 +189,18 @@ class JobSelectScene extends Phaser.Scene {
             fill: setData.color,
             fontStyle: 'bold'
         });
+        featureTitle.setOrigin(0, 0);
         jobListY += 25;
 
+        const featureTexts = [];
         setData.features.forEach(feature => {
             const featureText = this.add.text(-cardWidth / 2 + 15, jobListY, feature, {
                 fontFamily: 'Jua',
                 fontSize: '12px',
                 fill: '#999999'
             });
+            featureText.setOrigin(0, 0);
+            featureTexts.push(featureText);
             jobListY += 20;
         });
 
@@ -209,7 +217,7 @@ class JobSelectScene extends Phaser.Scene {
         selectButtonText.setOrigin(0.5);
 
         // 컨테이너에 추가
-        container.add([cardBg, headerBg, setName, description, jobListTitle, featureTitle, selectButton, selectButtonText]);
+        container.add([cardBg, headerBg, setName, description, jobListTitle, ...jobTexts, featureTitle, ...featureTexts, selectButton, selectButtonText]);
 
         // 호버 효과
         cardBg.on('pointerover', () => {
@@ -272,12 +280,11 @@ class JobSelectScene extends Phaser.Scene {
             // 잠시 후 다음 씬으로 전환
             this.time.delayedCall(200, () => {
                 if (gameMode === 'bossRush') {
-                    // 보스 러쉬 모드
+                    // 보스 러쉬 모드: 바로 시작
                     this.scene.start('BossRushScene');
                 } else {
-                    // 일반 모드: Stage1 시작
-                    this.registry.set('stageStartTime', Date.now());
-                    this.scene.start('Stage1Scene');
+                    // 일반 모드: 스테이지 선택 화면으로
+                    this.scene.start('StageSelectScene');
                 }
             });
 

@@ -53,13 +53,13 @@ class MainMenuScene extends Phaser.Scene {
 
             // 게임 모드 버튼들 (가로 배치)
             const centerX = CONSTANTS.GAME.WIDTH / 2;
-            const buttonSpacing = 140; // 버튼 간격
+            const buttonSpacing = 115; // 버튼 간격 (줄임)
 
-            // 일반 게임 시작 버튼 (왼쪽)
+            // 일반 게임 버튼 (왼쪽)
             const normalButton = this.createButton(
                 centerX - buttonSpacing,
-                350,
-                '일반 게임 시작',
+                360,
+                '일반 게임',
                 () => {
                     // 일반 모드: 직업 세트 선택 후 Stage1 시작
                     this.registry.set('gameMode', 'normal');
@@ -70,7 +70,7 @@ class MainMenuScene extends Phaser.Scene {
             // 보스 러쉬 모드 버튼 (오른쪽)
             const bossRushButton = this.createButton(
                 centerX + buttonSpacing,
-                350,
+                360,
                 '보스 러쉬 모드',
                 () => {
                     // 보스 러쉬 모드: 직업 세트 선택 후 시작
@@ -80,10 +80,10 @@ class MainMenuScene extends Phaser.Scene {
                 0xFF4444 // 빨간색
             );
 
-            // 최고 점수 표시
+            // 최고 점수 표시 (아래로 이동)
             this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                430,
+                460,
                 '',
                 {
                     fontFamily: 'Jua',

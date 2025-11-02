@@ -32,7 +32,7 @@ class BossRushScene extends Phaser.Scene {
         });
 
         // 슬라임 보스 스프라이트시트
-        this.load.spritesheet('slime_idle', 'assets/Slime/Idle (44x30).png', {
+        this.load.spritesheet('slime_idle', 'assets/Slime/Idle-Run (44x30).png', {
             frameWidth: 44,
             frameHeight: 30
         });
@@ -280,6 +280,14 @@ class BossRushScene extends Phaser.Scene {
             repeat: -1
         });
 
+        // slime_run은 slime_idle과 동일하게 처리 (별도 스프라이트 없음)
+        this.anims.create({
+            key: 'slime_run',
+            frames: this.anims.generateFrameNumbers('slime_idle', { start: 0, end: 9 }),
+            frameRate: 12,
+            repeat: -1
+        });
+
         this.anims.create({
             key: 'slime_hit',
             frames: this.anims.generateFrameNumbers('slime_hit', { start: 0, end: 4 }),
@@ -420,11 +428,18 @@ class BossRushScene extends Phaser.Scene {
                 try {
                     // 보스 생성
                     const BossClass = bossInfo.class;
+                    console.log('보스 클래스 확인:', bossInfo.name, BossClass);
+
                     if (!BossClass) {
                         throw new Error(`${bossInfo.name} 클래스를 찾을 수 없습니다`);
                     }
 
                     this.boss = new BossClass(this, CONSTANTS.GAME.WIDTH / 2 + 150, 350);
+                    console.log('보스 생성됨:', this.boss);
+                    console.log('보스 스프라이트:', this.boss.sprite);
+                    console.log('보스 위치:', this.boss.sprite.x, this.boss.sprite.y);
+                    console.log('보스 visible:', this.boss.sprite.visible);
+                    console.log('보스 active:', this.boss.sprite.active);
 
                     // 난이도 적용
                     const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
@@ -450,11 +465,10 @@ class BossRushScene extends Phaser.Scene {
 
                     this.bossDefeated = false;
 
-                    if (CONSTANTS.GAME.DEBUG) {
-                        console.log(`${bossInfo.title} 생성 완료! HP: ${this.boss.hp}`);
-                    }
+                    console.log(`${bossInfo.title} 생성 완료! HP: ${this.boss.hp}, 위치: (${this.boss.sprite.x}, ${this.boss.sprite.y})`);
                 } catch (error) {
                     console.error('보스 생성 중 오류:', error);
+                    console.error('오류 스택:', error.stack);
                 }
             }
         });
@@ -579,6 +593,7 @@ class BossRushScene extends Phaser.Scene {
             16,
             'BOSS RUSH MODE',
             {
+                fontFamily: 'Orbitron',
                 fontSize: '24px',
                 fill: '#FFD700',
                 fontStyle: 'bold',
@@ -595,6 +610,7 @@ class BossRushScene extends Phaser.Scene {
             50,
             'BOSS: 1/3',
             {
+                fontFamily: 'Orbitron',
                 fontSize: '20px',
                 fill: '#fff',
                 backgroundColor: '#000',
@@ -607,6 +623,7 @@ class BossRushScene extends Phaser.Scene {
 
         // 체력 표시
         this.healthText = this.add.text(16, 84, '', {
+            fontFamily: 'Jua',
             fontSize: '20px',
             fill: '#fff',
             backgroundColor: '#000',
@@ -616,6 +633,7 @@ class BossRushScene extends Phaser.Scene {
 
         // 능력 표시
         this.abilityText = this.add.text(16, 118, '', {
+            fontFamily: 'Jua',
             fontSize: '16px',
             fill: '#fff',
             backgroundColor: '#000',
@@ -625,6 +643,7 @@ class BossRushScene extends Phaser.Scene {
 
         // 쿨타임 표시
         this.cooldownText = this.add.text(16, 148, '', {
+            fontFamily: 'Orbitron',
             fontSize: '14px',
             fill: '#ffff00',
             backgroundColor: '#000',
@@ -639,6 +658,7 @@ class BossRushScene extends Phaser.Scene {
             16,
             controlsGuide,
             {
+                fontFamily: 'Jua',
                 fontSize: '12px',
                 fill: '#fff',
                 backgroundColor: '#000',
@@ -652,10 +672,10 @@ class BossRushScene extends Phaser.Scene {
         // 보스 HP 바 배경
         this.bossHpBarBg = this.add.rectangle(
             CONSTANTS.GAME.WIDTH / 2,
-            CONSTANTS.GAME.HEIGHT - 40,
+            125,
             400,
             20,
-            0x555555
+            0x333333
         );
         this.bossHpBarBg.setScrollFactor(0);
         this.bossHpBarBg.setDepth(99);
@@ -664,7 +684,7 @@ class BossRushScene extends Phaser.Scene {
         // 보스 HP 바
         this.bossHpBar = this.add.rectangle(
             CONSTANTS.GAME.WIDTH / 2,
-            CONSTANTS.GAME.HEIGHT - 40,
+            125,
             400,
             20,
             0xFF0000
@@ -676,9 +696,10 @@ class BossRushScene extends Phaser.Scene {
         // 보스 이름
         this.bossNameText = this.add.text(
             CONSTANTS.GAME.WIDTH / 2,
-            CONSTANTS.GAME.HEIGHT - 60,
+            100,
             '',
             {
+                fontFamily: 'Orbitron',
                 fontSize: '18px',
                 fill: '#FFD700',
                 fontStyle: 'bold',

@@ -27,6 +27,7 @@
         scene: [
             MainMenuScene,
             JobSelectScene,
+            StageSelectScene,
             Stage1Scene,
             Stage2Scene,
             Stage3Scene,
@@ -36,7 +37,7 @@
             PauseScene,
             GameScene,
             GameOverScene
-        ]  // Scene 순서: 메뉴 → 직업 선택 → Stage1~4 → 보스 러시 → 클리어 → 일시정지 → 게임오버
+        ]  // Scene 순서: 메뉴 → 직업 선택 → 스테이지 선택 → Stage1~4 → 보스 러시 → 클리어 → 일시정지 → 게임오버
     };
 
     // 게임 인스턴스 생성

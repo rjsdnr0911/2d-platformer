@@ -1,8 +1,8 @@
 // Rino Boss (스테이지 2 보스 - 돌진 라이노)
-class RinoBoss extends Enemy {
+class RinoBoss extends BaseBoss {
     constructor(scene, x, y) {
-        // 보스 스탯
-        const bossConfig = {
+        // 적 스탯
+        const enemyConfig = {
             WIDTH: 52,
             HEIGHT: 34,
             HP: 500,
@@ -11,7 +11,13 @@ class RinoBoss extends Enemy {
             COLOR: 0x808080
         };
 
-        super(scene, x, y, bossConfig);
+        // 보스 설정
+        const bossConfig = {
+            name: 'RAGING RHINO',
+            color: 0x808080
+        };
+
+        super(scene, x, y, bossConfig, enemyConfig);
 
         // Rectangle sprite 제거
         if (this.sprite) {
@@ -37,101 +43,19 @@ class RinoBoss extends Enemy {
         this.sprite.setData('type', 'enemy');
         this.sprite.setData('damage', this.damage);
 
-        // 보스 전용 속성
-        this.isBoss = true;
-        this.bossName = 'RAGING RHINO';
-        this.maxHp = this.hp;
-        this.phase = 1;
-
         // 공격 패턴
         this.patternCooldown = 0;
         this.patternInterval = 3000;
         this.isExecutingPattern = false;
         this.isCharging = false;
-
-        // 보스 체력바 생성
-        this.createHealthBar();
-
-        if (CONSTANTS.GAME.DEBUG) {
-            console.log('라이노 보스 생성:', this.maxHp, 'HP');
-        }
-    }
-
-    createHealthBar() {
-        // 보스 이름
-        this.nameText = this.scene.add.text(
-            CONSTANTS.GAME.WIDTH / 2,
-            50,
-            this.bossName,
-            {
-                fontSize: '24px',
-                fill: '#808080',
-                fontStyle: 'bold',
-                stroke: '#000',
-                strokeThickness: 4
-            }
-        );
-        this.nameText.setOrigin(0.5);
-        this.nameText.setScrollFactor(0);
-        this.nameText.setDepth(1000);
-
-        // 체력바 배경
-        this.healthBarBg = this.scene.add.rectangle(
-            CONSTANTS.GAME.WIDTH / 2,
-            75,
-            400,
-            20,
-            0x333333
-        );
-        this.healthBarBg.setScrollFactor(0);
-        this.healthBarBg.setDepth(1000);
-
-        // 체력바
-        this.healthBarFill = this.scene.add.rectangle(
-            CONSTANTS.GAME.WIDTH / 2,
-            75,
-            400,
-            20,
-            0x808080
-        );
-        this.healthBarFill.setScrollFactor(0);
-        this.healthBarFill.setDepth(1001);
-
-        // 체력 텍스트
-        this.healthText = this.scene.add.text(
-            CONSTANTS.GAME.WIDTH / 2,
-            75,
-            `${this.hp}/${this.maxHp}`,
-            {
-                fontSize: '14px',
-                fill: '#fff',
-                fontStyle: 'bold'
-            }
-        );
-        this.healthText.setOrigin(0.5);
-        this.healthText.setScrollFactor(0);
-        this.healthText.setDepth(1002);
     }
 
     updateHealthBar() {
-        if (!this.healthBarFill || !this.healthText) return;
+        // BaseBoss의 updateHealthBar 호출
+        super.updateHealthBar();
 
+        // 페이즈 체크 (RinoBoss 전용)
         const hpRatio = this.hp / this.maxHp;
-        this.healthBarFill.setScale(hpRatio, 1);
-        this.healthBarFill.x = (CONSTANTS.GAME.WIDTH / 2) - (200 * (1 - hpRatio));
-
-        // 체력에 따라 색상 변경
-        if (hpRatio > 0.5) {
-            this.healthBarFill.setFillStyle(0x808080);
-        } else if (hpRatio > 0.25) {
-            this.healthBarFill.setFillStyle(0xff8800);
-        } else {
-            this.healthBarFill.setFillStyle(0xff0000);
-        }
-
-        this.healthText.setText(`${this.hp}/${this.maxHp}`);
-
-        // 페이즈 2 전환
         if (this.phase === 1 && hpRatio <= 0.5) {
             this.enterPhase2();
         }
@@ -176,26 +100,13 @@ class RinoBoss extends Enemy {
         }
     }
 
-    takeDamage(damage) {
-        super.takeDamage(damage);
-        this.updateHealthBar();
-    }
+    // BaseBoss에서 이미 takeDamage와 updateHealthBar를 처리하므로 제거
 
     updateAI() {
         if (!this.isAlive || this.isHit || this.isExecutingPattern) return;
         if (!this.sprite || !this.sprite.body) return;
 
         const currentTime = this.scene.time.now;
-
-        // 맵 경계 체크 (보스가 맵 밖으로 나가지 않도록)
-        const margin = 50;
-        if (this.sprite.x < margin) {
-            this.sprite.x = margin;
-            this.sprite.body.setVelocityX(0);
-        } else if (this.sprite.x > CONSTANTS.WORLD.WIDTH - margin) {
-            this.sprite.x = CONSTANTS.WORLD.WIDTH - margin;
-            this.sprite.body.setVelocityX(0);
-        }
 
         // 패턴 실행
         if (currentTime - this.patternCooldown > this.patternInterval) {
@@ -380,12 +291,6 @@ class RinoBoss extends Enemy {
     }
 
     onDeath() {
-        // 보스 UI 제거
-        if (this.nameText) this.nameText.destroy();
-        if (this.healthBarBg) this.healthBarBg.destroy();
-        if (this.healthBarFill) this.healthBarFill.destroy();
-        if (this.healthText) this.healthText.destroy();
-
         // 보스 처치 이벤트
         this.scene.events.emit('bossDefeated', 2);
 
@@ -395,11 +300,7 @@ class RinoBoss extends Enemy {
     }
 
     destroy() {
-        if (this.nameText) this.nameText.destroy();
-        if (this.healthBarBg) this.healthBarBg.destroy();
-        if (this.healthBarFill) this.healthBarFill.destroy();
-        if (this.healthText) this.healthText.destroy();
-
+        // BaseBoss의 destroy 호출 (UI 정리 포함)
         super.destroy();
     }
 }

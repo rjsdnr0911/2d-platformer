@@ -19,33 +19,33 @@ class ItemNotificationUI {
         const centerX = CONSTANTS.GAME.WIDTH / 2;
         const centerY = CONSTANTS.GAME.HEIGHT / 2;
 
-        // 배경 패널 (어두운 반투명)
+        // 배경 패널 (어두운 반투명) - 크기 축소
         const bgPanel = this.scene.add.rectangle(
             centerX,
             centerY,
-            500,
-            180,
+            350,
+            130,
             0x000000,
             0.85
         );
         bgPanel.setScrollFactor(0);
         bgPanel.setDepth(2000);
-        bgPanel.setStrokeStyle(4, 0xFFD700); // 금색 테두리
+        bgPanel.setStrokeStyle(3, 0xFFD700); // 금색 테두리
 
-        // 금빛 반짝임 효과 (배경 레이어)
+        // 금빛 반짝임 효과 (배경 레이어) - 수량 축소
         const sparkles = [];
-        for (let i = 0; i < 12; i++) {
-            const angle = (Math.PI * 2 * i) / 12;
-            const distance = 120 + Math.random() * 40;
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const distance = 85 + Math.random() * 25;
 
             const sparkle = this.scene.add.star(
                 centerX + Math.cos(angle) * distance,
                 centerY + Math.sin(angle) * distance,
+                4,
                 5,
-                6,
-                12,
+                10,
                 0xFFD700,
-                0.8
+                0.7
             );
             sparkle.setScrollFactor(0);
             sparkle.setDepth(1999);
@@ -55,20 +55,20 @@ class ItemNotificationUI {
             this.scene.tweens.add({
                 targets: sparkle,
                 angle: 360,
-                scale: { from: 0.5, to: 1.5 },
-                alpha: { from: 0.8, to: 0 },
-                duration: 1500,
+                scale: { from: 0.4, to: 1.2 },
+                alpha: { from: 0.7, to: 0 },
+                duration: 1200,
                 ease: 'Power2'
             });
         }
 
-        // 아이템 아이콘 (크게)
+        // 아이템 아이콘 - 크기 축소
         const iconText = this.scene.add.text(
             centerX,
-            centerY - 40,
+            centerY - 30,
             itemConfig.icon,
             {
-                fontSize: '64px'
+                fontSize: '48px'
             }
         );
         iconText.setOrigin(0.5);
@@ -78,22 +78,23 @@ class ItemNotificationUI {
         // 아이콘 펄스 애니메이션
         this.scene.tweens.add({
             targets: iconText,
-            scale: { from: 0.5, to: 1.2 },
+            scale: { from: 0.5, to: 1.0 },
             duration: 300,
             ease: 'Back.easeOut'
         });
 
-        // 아이템 이름
+        // 아이템 이름 - 크기 축소
         const nameText = this.scene.add.text(
             centerX,
-            centerY + 30,
+            centerY + 20,
             itemConfig.name,
             {
-                fontSize: '28px',
+                fontFamily: 'Jua',
+                fontSize: '22px',
                 fill: '#FFD700',
                 fontStyle: 'bold',
                 stroke: '#000',
-                strokeThickness: 5
+                strokeThickness: 4
             }
         );
         nameText.setOrigin(0.5);
@@ -105,23 +106,24 @@ class ItemNotificationUI {
         this.scene.tweens.add({
             targets: nameText,
             alpha: 1,
-            y: centerY + 30,
-            duration: 400,
-            delay: 200,
+            y: centerY + 20,
+            duration: 300,
+            delay: 150,
             ease: 'Power2'
         });
 
-        // 효과 설명
+        // 효과 설명 - 크기 축소
         const descText = this.scene.add.text(
             centerX,
-            centerY + 65,
+            centerY + 48,
             description,
             {
-                fontSize: '18px',
+                fontFamily: 'Jua',
+                fontSize: '15px',
                 fill: '#FFFFFF',
                 fontStyle: 'italic',
                 stroke: '#000',
-                strokeThickness: 3,
+                strokeThickness: 2,
                 align: 'center'
             }
         );
@@ -134,31 +136,31 @@ class ItemNotificationUI {
         this.scene.tweens.add({
             targets: descText,
             alpha: 1,
-            y: centerY + 65,
-            duration: 400,
-            delay: 400,
+            y: centerY + 48,
+            duration: 300,
+            delay: 300,
             ease: 'Power2'
         });
 
-        // 금빛 파티클 효과 (추가)
-        for (let i = 0; i < 20; i++) {
+        // 금빛 파티클 효과 - 수량 축소
+        for (let i = 0; i < 12; i++) {
             this.scene.time.delayedCall(i * 50, () => {
                 const particle = this.scene.add.circle(
-                    centerX + (Math.random() - 0.5) * 300,
-                    centerY + (Math.random() - 0.5) * 100,
-                    3,
+                    centerX + (Math.random() - 0.5) * 220,
+                    centerY + (Math.random() - 0.5) * 70,
+                    2.5,
                     0xFFD700,
-                    1
+                    0.9
                 );
                 particle.setScrollFactor(0);
                 particle.setDepth(2000);
 
                 this.scene.tweens.add({
                     targets: particle,
-                    y: particle.y - 50,
+                    y: particle.y - 40,
                     alpha: 0,
                     scale: 0,
-                    duration: 1000,
+                    duration: 800,
                     ease: 'Power2',
                     onComplete: () => {
                         particle.destroy();
