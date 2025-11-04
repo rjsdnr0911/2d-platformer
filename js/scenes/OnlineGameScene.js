@@ -551,9 +551,9 @@ class OnlineGameScene extends Phaser.Scene {
         // 7. 상대방 연결 끊김
         this.socket.on('opponentDisconnected', () => {
             if (this.gameOver) return;
+            this.gameOver = true;  // 게임 종료 플래그 설정
             this.showMessage('상대방이 나갔습니다!', 3000);
             this.time.delayedCall(3000, () => {
-                this.cleanup();
                 this.scene.start('MainMenuScene');
             });
         });
@@ -902,9 +902,8 @@ class OnlineGameScene extends Phaser.Scene {
 
         this.showMessage(message, 3000, color);
 
-        // 3초 후 메인 메뉴로
+        // 3초 후 메인 메뉴로 (cleanup은 shutdown에서 자동 호출됨)
         this.time.delayedCall(3000, () => {
-            this.cleanup();
             this.scene.start('MainMenuScene');
         });
     }
