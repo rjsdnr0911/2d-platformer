@@ -81,7 +81,12 @@ class OnlineGameScene extends Phaser.Scene {
             frameWidth: 32,
             frameHeight: 32
         });
+    }
 
+    // ============================================
+    // 애니메이션 생성 (create에서 호출)
+    // ============================================
+    createAnimations() {
         // 애니메이션 생성
         if (!this.anims.exists('player_idle')) {
             this.anims.create({
@@ -145,6 +150,11 @@ class OnlineGameScene extends Phaser.Scene {
         try {
             // 배경색
             this.cameras.main.setBackgroundColor('#87CEEB');
+
+            // ============================================
+            // 0. 애니메이션 생성 (Player 생성 전에 반드시 필요)
+            // ============================================
+            this.createAnimations();
 
             // ============================================
             // 1. 기본 맵 생성 (간단한 플랫폼)
