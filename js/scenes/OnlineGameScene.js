@@ -27,6 +27,12 @@ class OnlineGameScene extends Phaser.Scene {
         // 네트워크 업데이트 주기
         this.lastUpdateTime = 0;
         this.updateInterval = 50;  // 50ms마다 위치 전송 (초당 20회)
+
+        // 직업 선택 관련
+        this.jobSelectionPhase = true;   // 직업 선택 단계
+        this.selectedJob = null;          // 내가 선택한 직업
+        this.opponentJob = null;          // 상대방이 선택한 직업
+        this.selectionTimer = 20;         // 20초 카운트다운
     }
 
     // ============================================
@@ -144,6 +150,170 @@ class OnlineGameScene extends Phaser.Scene {
     }
 
     // ============================================
+    // 직업 선택 UI 생성
+    // ============================================
+    createJobSelectionUI() {
+        // 제목
+        this.jobTitle = this.add.text(
+            400, 80,
+            '직업 선택',
+            {
+                fontFamily: 'Orbitron',
+                fontSize: '48px',
+                fill: '#00FFFF',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 6
+            }
+        );
+        this.jobTitle.setOrigin(0.5);
+
+        // 타이머 텍스트
+        this.timerText = this.add.text(
+            400, 150,
+            `남은 시간: ${this.selectionTimer}초`,
+            {
+                fontFamily: 'Jua',
+                fontSize: '24px',
+                fill: '#ffff00',
+                fontStyle: 'bold'
+            }
+        );
+        this.timerText.setOrigin(0.5);
+
+        // 설명 텍스트
+        const desc = this.add.text(
+            400, 200,
+            '20초 안에 직업을 선택하세요! (둘 다 선택하면 바로 시작)',
+            {
+                fontFamily: 'Jua',
+                fontSize: '16px',
+                fill: '#fff'
+            }
+        );
+        desc.setOrigin(0.5);
+
+        // 직업 버튼들 (2x2 그리드)
+        const jobs = [
+            { key: 'sword', name: '⚔️ 검술', color: 0x4444ff, x: 250, y: 300 },
+            { key: 'magic', name: '🔮 마법', color: 0x8844ff, x: 550, y: 300 },
+            { key: 'hammer', name: '🔨 해머', color: 0xff4444, x: 250, y: 400 },
+            { key: 'bow', name: '🏹 활', color: 0x44ff44, x: 550, y: 400 }
+        ];
+
+        this.jobButtons = [];
+
+        jobs.forEach(job => {
+            const button = this.createJobButton(job.x, job.y, job.name, job.key, job.color);
+            this.jobButtons.push(button);
+        });
+
+        // 상태 텍스트 (내 선택 / 상대방 선택)
+        this.statusText = this.add.text(
+            400, 500,
+            '내 선택: 없음\n상대방 선택: 대기 중...',
+            {
+                fontFamily: 'Jua',
+                fontSize: '18px',
+                fill: '#fff',
+                backgroundColor: '#00000088',
+                padding: { x: 20, y: 10 },
+                align: 'center'
+            }
+        );
+        this.statusText.setOrigin(0.5);
+
+        // 1초마다 타이머 업데이트
+        this.jobSelectionInterval = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                this.selectionTimer--;
+                this.timerText.setText(`남은 시간: ${this.selectionTimer}초`);
+
+                if (this.selectionTimer <= 0) {
+                    this.jobSelectionInterval.remove();
+                }
+            },
+            loop: true
+        });
+    }
+
+    // ============================================
+    // 직업 버튼 생성
+    // ============================================
+    createJobButton(x, y, text, jobKey, color) {
+        const button = this.add.rectangle(x, y, 250, 70, color);
+        button.setInteractive({ useHandCursor: true });
+
+        const buttonText = this.add.text(x, y, text, {
+            fontFamily: 'Jua',
+            fontSize: '28px',
+            fill: '#fff',
+            fontStyle: 'bold'
+        });
+        buttonText.setOrigin(0.5);
+
+        // 호버 효과
+        button.on('pointerover', () => {
+            const lighterColor = Phaser.Display.Color.ValueToColor(color).lighten(20).color;
+            button.setFillStyle(lighterColor);
+            buttonText.setScale(1.1);
+        });
+
+        button.on('pointerout', () => {
+            button.setFillStyle(color);
+            buttonText.setScale(1);
+        });
+
+        // 클릭 이벤트
+        button.on('pointerup', () => {
+            this.selectJob(jobKey);
+        });
+
+        return { button, buttonText, jobKey };
+    }
+
+    // ============================================
+    // 직업 선택 처리
+    // ============================================
+    selectJob(jobKey) {
+        if (!this.jobSelectionPhase || this.selectedJob) return;
+
+        this.selectedJob = jobKey;
+
+        // 서버에 선택 전송
+        this.socket.emit('playerJobSelected', {
+            roomId: this.roomId,
+            job: jobKey
+        });
+
+        // 상태 텍스트 업데이트
+        const jobNames = {
+            'sword': '⚔️ 검술',
+            'magic': '🔮 마법',
+            'hammer': '🔨 해머',
+            'bow': '🏹 활'
+        };
+
+        this.statusText.setText(
+            `내 선택: ${jobNames[jobKey]}\n상대방 선택: ${this.opponentJob ? jobNames[this.opponentJob] : '대기 중...'}`
+        );
+
+        // 선택한 버튼 강조
+        this.jobButtons.forEach(btn => {
+            if (btn.jobKey === jobKey) {
+                btn.button.setFillStyle(0xffffff);
+                btn.buttonText.setColor('#000');
+            } else {
+                btn.button.setAlpha(0.5);
+                btn.buttonText.setAlpha(0.5);
+            }
+        });
+
+        console.log(`[직업 선택] ${jobKey} 선택 완료`);
+    }
+
+    // ============================================
     // Scene 생성
     // ============================================
     create() {
@@ -157,77 +327,17 @@ class OnlineGameScene extends Phaser.Scene {
             this.createAnimations();
 
             // ============================================
-            // 1. 기본 맵 생성 (간단한 플랫폼)
-            // ============================================
-            this.createSimpleMap();
-
-            // ============================================
-            // 2. 내 플레이어 생성
-            // ============================================
-            const myStartX = this.playerNumber === 1 ? 100 : 700;
-            const myStartY = 300;
-
-            // Player 클래스 사용
-            this.myPlayer = new Player(this, myStartX, myStartY);
-
-            // 간단한 기본 능력 장착 (검술)
-            if (window.SwordAbility) {
-                this.myPlayer.equipAbility(new SwordAbility(this, this.myPlayer), 0);
-            }
-
-            // 카메라가 플레이어를 따라가도록
-            this.cameras.main.startFollow(this.myPlayer.sprite);
-
-            // ============================================
-            // 3. 상대 플레이어 스프라이트 생성
-            // ============================================
-            const oppStartX = this.playerNumber === 1 ? 700 : 100;
-            const oppStartY = 300;
-
-            this.opponent = this.add.sprite(oppStartX, oppStartY, 'player_idle');
-            this.opponent.play('player_idle');
-            this.opponent.setScale(1.3);
-            this.opponent.setTint(0xff8888);  // 상대방은 빨간색 톤
-
-            // 상대방은 물리 엔진 사용 안 함 (서버에서 받은 위치 그대로 표시)
-            // 물리 바디를 추가하지 않음
-
-            // ============================================
-            // 4. 플랫폼과 플레이어 충돌 설정
-            // ============================================
-            this.physics.add.collider(this.myPlayer.sprite, this.platforms);
-            // 상대방은 물리 바디가 없으므로 충돌 설정 불필요
-
-            // ============================================
-            // 5. UI 생성 (체력바, 플레이어 정보)
-            // ============================================
-            this.createUI();
-
-            // ============================================
-            // 6. 키보드 입력 설정
-            // ============================================
-            this.cursors = this.input.keyboard.createCursorKeys();
-            this.keys = {
-                dash: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
-                basicAttack: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z),
-                strongAttack: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X),
-                specialSkill: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C),
-                abilitySwap1: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
-                abilitySwap2: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
-            };
-
-            // ============================================
-            // 7. Socket.io 이벤트 리스너 설정
+            // 1. Socket.io 이벤트 리스너 설정 (먼저 설정)
             // ============================================
             this.setupSocketListeners();
 
             // ============================================
-            // 8. 게임 시작 알림
+            // 2. 직업 선택 UI 표시
             // ============================================
-            this.showMessage('게임 시작!', 2000);
+            this.createJobSelectionUI();
 
             if (CONSTANTS.GAME.DEBUG) {
-                console.log('[OnlineGameScene] 생성 완료');
+                console.log('[OnlineGameScene] 직업 선택 단계 시작');
             }
 
         } catch (error) {
@@ -332,6 +442,41 @@ class OnlineGameScene extends Phaser.Scene {
     // Socket.io 이벤트 리스너 설정
     // ============================================
     setupSocketListeners() {
+        // 0-1. 상대방 직업 선택 수신
+        this.socket.on('opponentJobSelected', (data) => {
+            this.opponentJob = data.job;
+
+            const jobNames = {
+                'sword': '⚔️ 검술',
+                'magic': '🔮 마법',
+                'hammer': '🔨 해머',
+                'bow': '🏹 활'
+            };
+
+            // 상태 텍스트 업데이트
+            if (this.statusText) {
+                this.statusText.setText(
+                    `내 선택: ${this.selectedJob ? jobNames[this.selectedJob] : '없음'}\n상대방 선택: ${jobNames[data.job]}`
+                );
+            }
+
+            console.log(`[상대방 직업 선택] ${data.job}`);
+        });
+
+        // 0-2. 게임 시작 수신
+        this.socket.on('gameStart', (data) => {
+            console.log('[게임 시작!]', data);
+
+            // 직업 선택 UI 제거
+            this.removeJobSelectionUI();
+
+            // 선택된 직업으로 게임 시작
+            const myJob = this.playerNumber === 1 ? data.player1Job : data.player2Job;
+            const oppJob = this.playerNumber === 1 ? data.player2Job : data.player1Job;
+
+            this.startGameWithJobs(myJob, oppJob);
+        });
+
         // 1. 상대방 이동 수신
         this.socket.on('opponentMove', (data) => {
             if (!this.opponent || this.gameOver) return;
@@ -425,9 +570,127 @@ class OnlineGameScene extends Phaser.Scene {
     }
 
     // ============================================
+    // 직업 선택 UI 제거
+    // ============================================
+    removeJobSelectionUI() {
+        if (this.jobSelectionInterval) {
+            this.jobSelectionInterval.remove();
+        }
+
+        if (this.jobTitle) this.jobTitle.destroy();
+        if (this.timerText) this.timerText.destroy();
+        if (this.statusText) this.statusText.destroy();
+
+        if (this.jobButtons) {
+            this.jobButtons.forEach(btn => {
+                btn.button.destroy();
+                btn.buttonText.destroy();
+            });
+        }
+    }
+
+    // ============================================
+    // 선택된 직업으로 게임 시작
+    // ============================================
+    startGameWithJobs(myJob, opponentJob) {
+        try {
+            console.log(`[게임 시작] 내 직업: ${myJob}, 상대 직업: ${opponentJob}`);
+
+            // 직업 선택 단계 종료
+            this.jobSelectionPhase = false;
+
+            // ============================================
+            // 1. 기본 맵 생성
+            // ============================================
+            this.createSimpleMap();
+
+            // ============================================
+            // 2. 내 플레이어 생성
+            // ============================================
+            const myStartX = this.playerNumber === 1 ? 100 : 700;
+            const myStartY = 300;
+
+            this.myPlayer = new Player(this, myStartX, myStartY);
+
+            // 선택한 직업에 따라 능력 장착
+            this.equipAbility(this.myPlayer, myJob);
+
+            // 카메라가 플레이어를 따라가도록
+            this.cameras.main.startFollow(this.myPlayer.sprite);
+
+            // ============================================
+            // 3. 상대 플레이어 스프라이트 생성
+            // ============================================
+            const oppStartX = this.playerNumber === 1 ? 700 : 100;
+            const oppStartY = 300;
+
+            this.opponent = this.add.sprite(oppStartX, oppStartY, 'player_idle');
+            this.opponent.play('player_idle');
+            this.opponent.setScale(1.3);
+            this.opponent.setTint(0xff8888);
+
+            // ============================================
+            // 4. 플랫폼과 플레이어 충돌 설정
+            // ============================================
+            this.physics.add.collider(this.myPlayer.sprite, this.platforms);
+
+            // ============================================
+            // 5. UI 생성 (체력바, 플레이어 정보)
+            // ============================================
+            this.createUI();
+
+            // ============================================
+            // 6. 키보드 입력 설정
+            // ============================================
+            this.cursors = this.input.keyboard.createCursorKeys();
+            this.keys = {
+                dash: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT),
+                basicAttack: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Z),
+                strongAttack: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.X),
+                specialSkill: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C),
+                abilitySwap1: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.Q),
+                abilitySwap2: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.E)
+            };
+
+            // ============================================
+            // 7. 게임 시작 알림
+            // ============================================
+            this.showMessage('게임 시작!', 2000);
+
+            console.log('[게임 초기화 완료]');
+
+        } catch (error) {
+            console.error('[startGameWithJobs] 오류:', error);
+        }
+    }
+
+    // ============================================
+    // 플레이어에게 직업 능력 장착
+    // ============================================
+    equipAbility(player, jobKey) {
+        if (jobKey === 'sword' && window.SwordAbility) {
+            player.equipAbility(new SwordAbility(this, player), 0);
+        } else if (jobKey === 'magic' && window.MagicAbility) {
+            player.equipAbility(new MagicAbility(this, player), 0);
+        } else if (jobKey === 'hammer' && window.HammerAbility) {
+            player.equipAbility(new HammerAbility(this, player), 0);
+        } else if (jobKey === 'bow' && window.BowAbility) {
+            player.equipAbility(new BowAbility(this, player), 0);
+        } else {
+            // 기본값: 검술
+            if (window.SwordAbility) {
+                player.equipAbility(new SwordAbility(this, player), 0);
+            }
+        }
+    }
+
+    // ============================================
     // Update (매 프레임마다 실행)
     // ============================================
     update(time, delta) {
+        // 직업 선택 단계에서는 업데이트하지 않음
+        if (this.jobSelectionPhase) return;
+
         if (this.gameOver || !this.myPlayer) return;
 
         try {
@@ -750,7 +1013,12 @@ class OnlineGameScene extends Phaser.Scene {
     // 정리 (Scene 종료 시)
     // ============================================
     cleanup() {
+        // 직업 선택 UI 제거
+        this.removeJobSelectionUI();
+
         if (this.socket && this.socket.connected) {
+            this.socket.off('opponentJobSelected');
+            this.socket.off('gameStart');
             this.socket.off('opponentMove');
             this.socket.off('opponentJump');
             this.socket.off('opponentDash');

@@ -47,6 +47,7 @@ function createRoom(player1, player2) {
                 id: player1.id,
                 socket: player1,
                 ready: false,
+                selectedJob: null,  // 선택한 직업 (null = 미선택)
                 // 플레이어 초기 상태
                 x: 100,
                 y: 300,
@@ -60,6 +61,7 @@ function createRoom(player1, player2) {
                 id: player2.id,
                 socket: player2,
                 ready: false,
+                selectedJob: null,  // 선택한 직업 (null = 미선택)
                 // 플레이어 2는 오른쪽에서 시작
                 x: 700,
                 y: 300,
@@ -71,7 +73,9 @@ function createRoom(player1, player2) {
             }
         },
         createdAt: Date.now(),
-        gameStarted: false
+        gameStarted: false,
+        jobSelectionPhase: true,  // 직업 선택 단계 활성화
+        jobSelectionTimer: null   // 타이머 참조
     };
 
     rooms.set(roomId, room);
@@ -95,7 +99,45 @@ function createRoom(player1, player2) {
 
     console.log(`[방 생성] ${roomId} - Player1: ${player1.id}, Player2: ${player2.id}`);
 
+    // 20초 타이머 시작 (직업 선택 시간)
+    room.jobSelectionTimer = setTimeout(() => {
+        startGame(roomId);
+    }, 20000);  // 20초
+
+    console.log(`[직업 선택] ${roomId} - 20초 타이머 시작`);
+
     return room;
+}
+
+// 게임 시작 함수
+function startGame(roomId) {
+    const room = rooms.get(roomId);
+    if (!room || room.gameStarted) return;
+
+    // 타이머 정리
+    if (room.jobSelectionTimer) {
+        clearTimeout(room.jobSelectionTimer);
+        room.jobSelectionTimer = null;
+    }
+
+    room.jobSelectionPhase = false;
+    room.gameStarted = true;
+
+    // 선택하지 않은 플레이어는 기본 직업(검술) 자동 배정
+    if (!room.players.player1.selectedJob) {
+        room.players.player1.selectedJob = 'sword';
+    }
+    if (!room.players.player2.selectedJob) {
+        room.players.player2.selectedJob = 'sword';
+    }
+
+    // 두 플레이어에게 게임 시작 알림
+    io.to(roomId).emit('gameStart', {
+        player1Job: room.players.player1.selectedJob,
+        player2Job: room.players.player2.selectedJob
+    });
+
+    console.log(`[게임 시작] ${roomId} - P1: ${room.players.player1.selectedJob}, P2: ${room.players.player2.selectedJob}`);
 }
 
 // ==================================================
@@ -126,7 +168,42 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-2. 플레이어 이동 동기화
+    // 6-2. 직업 선택 처리
+    // ============================================
+    socket.on('playerJobSelected', (data) => {
+        // data = { roomId, job }
+        const room = rooms.get(data.roomId);
+        if (!room || !room.jobSelectionPhase) return;
+
+        // 직업 저장
+        let playerKey = null;
+        if (room.players.player1.id === socket.id) {
+            room.players.player1.selectedJob = data.job;
+            playerKey = 'player1';
+        } else if (room.players.player2.id === socket.id) {
+            room.players.player2.selectedJob = data.job;
+            playerKey = 'player2';
+        }
+
+        if (!playerKey) return;
+
+        console.log(`[직업 선택] ${socket.id} -> ${data.job}`);
+
+        // 상대방에게 직업 선택 알림
+        socket.to(data.roomId).emit('opponentJobSelected', {
+            job: data.job
+        });
+
+        // 둘 다 선택했는지 확인
+        if (room.players.player1.selectedJob && room.players.player2.selectedJob) {
+            console.log(`[조기 시작] ${data.roomId} - 양쪽 모두 직업 선택 완료`);
+            // 둘 다 선택했으면 즉시 게임 시작
+            startGame(data.roomId);
+        }
+    });
+
+    // ============================================
+    // 6-3. 플레이어 이동 동기화
     // ============================================
     socket.on('playerMove', (data) => {
         // data = { roomId, x, y, velocityX, velocityY, facingRight }
@@ -146,7 +223,7 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-3. 점프 동기화
+    // 6-4. 점프 동기화
     // ============================================
     socket.on('playerJump', (data) => {
         // data = { roomId }
@@ -156,7 +233,7 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-4. 대시 동기화
+    // 6-5. 대시 동기화
     // ============================================
     socket.on('playerDash', (data) => {
         // data = { roomId, direction }
@@ -167,7 +244,7 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-5. 공격 동기화
+    // 6-6. 공격 동기화
     // ============================================
     socket.on('playerAttack', (data) => {
         // data = { roomId, attackType, x, y, direction }
@@ -181,7 +258,7 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-6. 피격 동기화
+    // 6-7. 피격 동기화
     // ============================================
     socket.on('playerHit', (data) => {
         // data = { roomId, damage, hp }
@@ -193,7 +270,7 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-7. 플레이어 사망 처리
+    // 6-8. 플레이어 사망 처리
     // ============================================
     socket.on('playerDied', (data) => {
         // data = { roomId }
@@ -213,7 +290,7 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-8. 애니메이션 동기화
+    // 6-9. 애니메이션 동기화
     // ============================================
     socket.on('playerAnimation', (data) => {
         // data = { roomId, animation }
@@ -224,7 +301,7 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-9. 연결 해제 처리
+    // 6-10. 연결 해제 처리
     // ============================================
     socket.on('disconnect', () => {
         console.log(`[연결 해제] ${socket.id}`);
@@ -249,7 +326,7 @@ io.on('connection', (socket) => {
     });
 
     // ============================================
-    // 6-10. 게임 재시작 요청
+    // 6-11. 게임 재시작 요청
     // ============================================
     socket.on('requestRematch', (data) => {
         // data = { roomId }

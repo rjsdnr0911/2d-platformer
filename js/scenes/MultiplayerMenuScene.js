@@ -261,12 +261,23 @@ class MultiplayerMenuScene extends Phaser.Scene {
     // 정리 (Scene 종료 시)
     // ============================================
     cleanup() {
-        if (this.socket && this.socket.connected) {
-            this.socket.disconnect();
+        // Socket 이벤트 리스너 제거
+        if (this.socket) {
+            this.socket.off('connect');
+            this.socket.off('connect_error');
+            this.socket.off('disconnect');
+            this.socket.off('waitingForMatch');
+            this.socket.off('matchFound');
+
+            if (this.socket.connected) {
+                this.socket.disconnect();
+            }
+            this.socket = null;
         }
 
         if (this.loadingTimer) {
             this.loadingTimer.remove();
+            this.loadingTimer = null;
         }
 
         this.isSearching = false;
