@@ -9,8 +9,7 @@ class MultiplayerMenuScene extends Phaser.Scene {
         super({ key: 'MultiplayerMenuScene' });
         this.socket = null;  // Socket.io 클라이언트
         this.isSearching = false;  // 매칭 검색 중 여부
-        // 로컬 테스트용 (Render 배포 시: https://twod-platformer-1.onrender.com)
-        this.SERVER_URL = 'http://localhost:3000';  // 로컬 서버 주소
+        this.SERVER_URL = 'https://twod-platformer-1.onrender.com';  // Render 서버 주소
     }
 
     create() {
