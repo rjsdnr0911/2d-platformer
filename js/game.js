@@ -36,8 +36,10 @@
             StageClearScene,
             PauseScene,
             GameScene,
-            GameOverScene
-        ]  // Scene 순서: 메뉴 → 직업 선택 → 스테이지 선택 → Stage1~4 → 보스 러시 → 클리어 → 일시정지 → 게임오버
+            GameOverScene,
+            MultiplayerMenuScene,  // 멀티플레이어 메뉴
+            OnlineGameScene        // 온라인 게임
+        ]  // Scene 순서: 메뉴 → 직업 선택 → 스테이지 선택 → Stage1~4 → 보스 러시 → 클리어 → 일시정지 → 게임오버 → 멀티플레이어
     };
 
     // 게임 인스턴스 생성

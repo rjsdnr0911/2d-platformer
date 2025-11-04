@@ -80,10 +80,22 @@ class MainMenuScene extends Phaser.Scene {
                 0xFF4444 // 빨간색
             );
 
-            // 최고 점수 표시 (아래로 이동)
+            // 온라인 대전 버튼 (가운데 하단)
+            const onlineButton = this.createButton(
+                centerX,
+                420,
+                '🌐 온라인 1대1',
+                () => {
+                    // 멀티플레이어 메뉴로 이동
+                    this.scene.start('MultiplayerMenuScene');
+                },
+                0x44FF44 // 초록색
+            );
+
+            // 최고 점수 표시 (더 아래로 이동)
             this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                460,
+                500,
                 '',
                 {
                     fontFamily: 'Jua',
