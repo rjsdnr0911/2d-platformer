@@ -172,8 +172,17 @@ io.on('connection', (socket) => {
     // ============================================
     socket.on('playerJobSelected', (data) => {
         // data = { roomId, job }
+        console.log(`[직업 선택 요청] ${socket.id} -> roomId: ${data.roomId}, job: ${data.job}`);
+
         const room = rooms.get(data.roomId);
-        if (!room || !room.jobSelectionPhase) return;
+        if (!room) {
+            console.log(`[직업 선택 실패] 방을 찾을 수 없음: ${data.roomId}`);
+            return;
+        }
+        if (!room.jobSelectionPhase) {
+            console.log(`[직업 선택 실패] 직업 선택 단계가 아님: ${data.roomId}`);
+            return;
+        }
 
         // 직업 저장
         let playerKey = null;
@@ -185,9 +194,13 @@ io.on('connection', (socket) => {
             playerKey = 'player2';
         }
 
-        if (!playerKey) return;
+        if (!playerKey) {
+            console.log(`[직업 선택 실패] 플레이어를 방에서 찾을 수 없음: ${socket.id}`);
+            return;
+        }
 
-        console.log(`[직업 선택] ${socket.id} -> ${data.job}`);
+        console.log(`[직업 선택 성공] ${playerKey} -> ${data.job}`);
+        console.log(`[현재 상태] P1: ${room.players.player1.selectedJob}, P2: ${room.players.player2.selectedJob}`);
 
         // 상대방에게 직업 선택 알림
         socket.to(data.roomId).emit('opponentJobSelected', {
@@ -199,6 +212,8 @@ io.on('connection', (socket) => {
             console.log(`[조기 시작] ${data.roomId} - 양쪽 모두 직업 선택 완료`);
             // 둘 다 선택했으면 즉시 게임 시작
             startGame(data.roomId);
+        } else {
+            console.log(`[대기 중] 상대방 선택 대기 중...`);
         }
     });
 
