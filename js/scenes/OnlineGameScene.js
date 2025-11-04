@@ -48,6 +48,97 @@ class OnlineGameScene extends Phaser.Scene {
     }
 
     // ============================================
+    // 스프라이트 로드 (preload)
+    // ============================================
+    preload() {
+        // 플레이어 스프라이트 로드
+        this.load.spritesheet('player_idle', 'assets/player/Idle (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        this.load.spritesheet('player_run', 'assets/player/Run (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        this.load.spritesheet('player_jump', 'assets/player/Jump (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        this.load.spritesheet('player_fall', 'assets/player/Fall (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        this.load.spritesheet('player_double_jump', 'assets/player/Double Jump (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        this.load.spritesheet('player_hit', 'assets/player/Hit (32x32).png', {
+            frameWidth: 32,
+            frameHeight: 32
+        });
+
+        // 애니메이션 생성
+        if (!this.anims.exists('player_idle')) {
+            this.anims.create({
+                key: 'player_idle',
+                frames: this.anims.generateFrameNumbers('player_idle', { start: 0, end: 10 }),
+                frameRate: 10,
+                repeat: -1
+            });
+        }
+
+        if (!this.anims.exists('player_run')) {
+            this.anims.create({
+                key: 'player_run',
+                frames: this.anims.generateFrameNumbers('player_run', { start: 0, end: 11 }),
+                frameRate: 15,
+                repeat: -1
+            });
+        }
+
+        if (!this.anims.exists('player_jump')) {
+            this.anims.create({
+                key: 'player_jump',
+                frames: this.anims.generateFrameNumbers('player_jump', { start: 0, end: 0 }),
+                frameRate: 10,
+                repeat: 0
+            });
+        }
+
+        if (!this.anims.exists('player_fall')) {
+            this.anims.create({
+                key: 'player_fall',
+                frames: this.anims.generateFrameNumbers('player_fall', { start: 0, end: 0 }),
+                frameRate: 10,
+                repeat: 0
+            });
+        }
+
+        if (!this.anims.exists('player_double_jump')) {
+            this.anims.create({
+                key: 'player_double_jump',
+                frames: this.anims.generateFrameNumbers('player_double_jump', { start: 0, end: 5 }),
+                frameRate: 10,
+                repeat: 0
+            });
+        }
+
+        if (!this.anims.exists('player_hit')) {
+            this.anims.create({
+                key: 'player_hit',
+                frames: this.anims.generateFrameNumbers('player_hit', { start: 0, end: 6 }),
+                frameRate: 15,
+                repeat: 0
+            });
+        }
+    }
+
+    // ============================================
     // Scene 생성
     // ============================================
     create() {
@@ -263,18 +354,34 @@ class OnlineGameScene extends Phaser.Scene {
         // 4. 상대방 공격
         this.socket.on('opponentAttack', (data) => {
             if (!this.opponent || this.gameOver) return;
-            // 공격 판정 (간단하게: 거리 체크)
+
+            // 공격 판정: 거리 + 방향 체크
             const distance = Phaser.Math.Distance.Between(
                 this.myPlayer.sprite.x, this.myPlayer.sprite.y,
                 data.x, data.y
             );
 
-            // 공격 범위 내에 있으면 피해
-            if (distance < 80) {
-                this.takeDamage(data.attackType === 'strong' ? 20 : 10);
+            // 상대방이 나를 향해 공격하는지 확인
+            const dx = this.myPlayer.sprite.x - data.x;
+            const isFacingMe = (data.direction > 0 && dx > 0) || (data.direction < 0 && dx < 0);
+
+            // 공격 범위 내이고, 나를 보고 공격했으면 피해
+            if (distance < 80 && isFacingMe) {
+                let damage = 10;  // 기본
+                if (data.attackType === 'strong') damage = 20;
+                if (data.attackType === 'special') damage = 30;
+
+                this.takeDamage(damage);
+
+                // 피격 이펙트 (파티클)
+                this.createHitEffect(this.myPlayer.sprite.x, this.myPlayer.sprite.y);
+
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log(`[피격] ${data.attackType} 공격 받음: ${damage} 데미지`);
+                }
             }
 
-            // 공격 이펙트 표시
+            // 공격 이펙트 표시 (항상)
             this.createAttackEffect(data.x, data.y, data.direction);
         });
 
@@ -319,8 +426,58 @@ class OnlineGameScene extends Phaser.Scene {
         if (this.gameOver || !this.myPlayer) return;
 
         try {
-            // 1. 내 플레이어 입력 처리
-            this.myPlayer.update(this.cursors, this.keys);
+            // 1. 내 플레이어 입력 처리 (이동, 점프만)
+            // 공격은 별도로 처리
+
+            // 좌우 이동
+            if (this.cursors.left.isDown) {
+                this.myPlayer.move(-1);
+            } else if (this.cursors.right.isDown) {
+                this.myPlayer.move(1);
+            }
+
+            // 점프
+            if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+                this.myPlayer.jump();
+                // 서버에 점프 알림
+                this.socket.emit('playerJump', {
+                    roomId: this.roomId
+                });
+            }
+
+            // 대시
+            if (Phaser.Input.Keyboard.JustDown(this.keys.dash)) {
+                this.myPlayer.dash();
+                // 서버에 대시 알림
+                this.socket.emit('playerDash', {
+                    roomId: this.roomId,
+                    direction: this.myPlayer.facingRight ? 1 : -1
+                });
+            }
+
+            // 공격 (Z 키 - 기본 공격)
+            if (Phaser.Input.Keyboard.JustDown(this.keys.basicAttack)) {
+                this.performAttack('basic', 10);
+            }
+
+            // 강공격 (X 키)
+            if (Phaser.Input.Keyboard.JustDown(this.keys.strongAttack)) {
+                this.performAttack('strong', 20);
+            }
+
+            // 필살기 (C 키)
+            if (Phaser.Input.Keyboard.JustDown(this.keys.specialSkill)) {
+                this.performAttack('special', 30);
+            }
+
+            // 애니메이션 업데이트
+            this.myPlayer.updateAnimation();
+
+            // 현재 능력 업데이트
+            const ability = this.myPlayer.getCurrentAbility();
+            if (ability) {
+                ability.update();
+            }
 
             // 2. 내 위치를 서버로 전송 (50ms마다)
             if (time - this.lastUpdateTime > this.updateInterval) {
@@ -330,6 +487,51 @@ class OnlineGameScene extends Phaser.Scene {
 
         } catch (error) {
             console.error('[OnlineGameScene] update 오류:', error);
+        }
+    }
+
+    // ============================================
+    // 공격 수행 및 서버 전송
+    // ============================================
+    performAttack(attackType, damage) {
+        if (!this.myPlayer || this.gameOver) return;
+
+        // 공격 애니메이션 재생
+        if (attackType === 'basic') {
+            this.myPlayer.basicAttack();
+        } else if (attackType === 'strong') {
+            this.myPlayer.strongAttack();
+        } else if (attackType === 'special') {
+            this.myPlayer.specialSkill();
+        }
+
+        // 서버로 공격 정보 전송
+        const direction = this.myPlayer.facingRight ? 1 : -1;
+        this.socket.emit('playerAttack', {
+            roomId: this.roomId,
+            attackType: attackType,
+            x: this.myPlayer.sprite.x,
+            y: this.myPlayer.sprite.y,
+            direction: direction
+        });
+
+        // 로컬에서 상대와 충돌 체크 (즉각 피드백)
+        if (this.opponent) {
+            const distance = Phaser.Math.Distance.Between(
+                this.myPlayer.sprite.x,
+                this.myPlayer.sprite.y,
+                this.opponent.x,
+                this.opponent.y
+            );
+
+            // 거리 체크 + 방향 체크
+            const dx = this.opponent.x - this.myPlayer.sprite.x;
+            const isFacingOpponent = (direction > 0 && dx > 0) || (direction < 0 && dx < 0);
+
+            // 공격 범위 내이고, 상대를 보고 있으면
+            if (distance < 80 && isFacingOpponent) {
+                console.log(`[공격 적중!] ${attackType} - ${damage} 데미지`);
+            }
         }
     }
 
@@ -510,6 +712,33 @@ class OnlineGameScene extends Phaser.Scene {
             duration: 200,
             onComplete: () => slash.destroy()
         });
+    }
+
+    createHitEffect(x, y) {
+        // 피격 파티클 (별 모양)
+        for (let i = 0; i < 8; i++) {
+            const angle = (Math.PI * 2 * i) / 8;
+            const speed = 100;
+
+            const particle = this.add.star(
+                x, y, 5, 5, 10, 0xFF0000, 1
+            );
+
+            this.physics.add.existing(particle);
+            particle.body.setAllowGravity(false);
+            particle.body.setVelocity(
+                Math.cos(angle) * speed,
+                Math.sin(angle) * speed
+            );
+
+            this.tweens.add({
+                targets: particle,
+                alpha: 0,
+                scale: 0.5,
+                duration: 400,
+                onComplete: () => particle.destroy()
+            });
+        }
     }
 
     // ============================================

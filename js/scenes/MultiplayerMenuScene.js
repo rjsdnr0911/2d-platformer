@@ -65,7 +65,7 @@ class MultiplayerMenuScene extends Phaser.Scene {
             this.serverAddressText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
                 260,
-                'localhost:3000',  // 기본값
+                'twod-platformer-1.onrender.com',  // 기본값: Render 서버
                 {
                     fontFamily: 'Orbitron',
                     fontSize: '24px',
