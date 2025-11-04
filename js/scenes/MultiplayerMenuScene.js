@@ -100,7 +100,7 @@ class MultiplayerMenuScene extends Phaser.Scene {
             const helpText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
                 540,
-                '💡 버튼이 반응하지 않으면 F5로 새로고침 후 다시 시도하세요',
+                '💡 버튼이 반응하지 않으면 Ctrl+R로 새로고침 후 다시 시도하세요',
                 {
                     fontFamily: 'Jua',
                     fontSize: '14px',
