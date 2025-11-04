@@ -96,6 +96,20 @@ class MultiplayerMenuScene extends Phaser.Scene {
                 0x888888  // 회색
             );
 
+            // 안내 문구 (하단)
+            const helpText = this.add.text(
+                CONSTANTS.GAME.WIDTH / 2,
+                540,
+                '💡 버튼이 반응하지 않으면 F5로 새로고침 후 다시 시도하세요',
+                {
+                    fontFamily: 'Jua',
+                    fontSize: '14px',
+                    fill: '#aaaaaa',
+                    align: 'center'
+                }
+            );
+            helpText.setOrigin(0.5);
+
             if (CONSTANTS.GAME.DEBUG) {
                 console.log('[MultiplayerMenuScene] 생성 완료');
             }
