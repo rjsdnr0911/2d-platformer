@@ -179,17 +179,14 @@ class OnlineGameScene extends Phaser.Scene {
             this.opponent.setScale(1.3);
             this.opponent.setTint(0xff8888);  // 상대방은 빨간색 톤
 
-            this.physics.add.existing(this.opponent);
-            this.opponent.body.setSize(20, 30);
-            this.opponent.body.setAllowGravity(true);
-            this.opponent.body.setBounce(0.1);
-            this.opponent.body.setCollideWorldBounds(true);
+            // 상대방은 물리 엔진 사용 안 함 (서버에서 받은 위치 그대로 표시)
+            // 물리 바디를 추가하지 않음
 
             // ============================================
             // 4. 플랫폼과 플레이어 충돌 설정
             // ============================================
             this.physics.add.collider(this.myPlayer.sprite, this.platforms);
-            this.physics.add.collider(this.opponent, this.platforms);
+            // 상대방은 물리 바디가 없으므로 충돌 설정 불필요
 
             // ============================================
             // 5. UI 생성 (체력바, 플레이어 정보)
@@ -329,11 +326,9 @@ class OnlineGameScene extends Phaser.Scene {
         this.socket.on('opponentMove', (data) => {
             if (!this.opponent || this.gameOver) return;
 
-            // 상대방 위치 업데이트
+            // 상대방 위치 업데이트 (물리 바디 없이 직접 좌표 설정)
             this.opponent.x = data.x;
             this.opponent.y = data.y;
-            this.opponent.body.setVelocityX(data.velocityX);
-            this.opponent.body.setVelocityY(data.velocityY);
             this.opponent.setFlipX(!data.facingRight);
         });
 

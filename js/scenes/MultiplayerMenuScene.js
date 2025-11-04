@@ -9,6 +9,7 @@ class MultiplayerMenuScene extends Phaser.Scene {
         super({ key: 'MultiplayerMenuScene' });
         this.socket = null;  // Socket.io 클라이언트
         this.isSearching = false;  // 매칭 검색 중 여부
+        this.SERVER_URL = 'https://twod-platformer-1.onrender.com';  // 고정된 서버 주소
     }
 
     create() {
@@ -36,7 +37,7 @@ class MultiplayerMenuScene extends Phaser.Scene {
             const description = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
                 150,
-                '서버 주소를 입력하고 매칭을 시작하세요!',
+                '매칭을 시작하세요!',
                 {
                     fontFamily: 'Jua',
                     fontSize: '18px',
@@ -45,54 +46,10 @@ class MultiplayerMenuScene extends Phaser.Scene {
             );
             description.setOrigin(0.5);
 
-            // ============================================
-            // 서버 주소 입력 (HTML input 사용)
-            // ============================================
-            const inputLabel = this.add.text(
-                CONSTANTS.GAME.WIDTH / 2,
-                220,
-                '서버 주소:',
-                {
-                    fontFamily: 'Jua',
-                    fontSize: '20px',
-                    fill: '#fff',
-                    fontStyle: 'bold'
-                }
-            );
-            inputLabel.setOrigin(0.5);
-
-            // 서버 주소 표시용 텍스트
-            this.serverAddressText = this.add.text(
-                CONSTANTS.GAME.WIDTH / 2,
-                260,
-                'twod-platformer-1.onrender.com',  // 기본값: Render 서버
-                {
-                    fontFamily: 'Orbitron',
-                    fontSize: '24px',
-                    fill: '#ffff00',
-                    backgroundColor: '#00000088',
-                    padding: { x: 15, y: 10 }
-                }
-            );
-            this.serverAddressText.setOrigin(0.5);
-            this.serverAddressText.setInteractive({ useHandCursor: true });
-
-            // 클릭 시 프롬프트로 주소 변경
-            this.serverAddressText.on('pointerdown', () => {
-                if (this.isSearching) return;
-
-                const newAddress = prompt('서버 주소를 입력하세요 (예: localhost:3000 또는 your-server.onrender.com):',
-                    this.serverAddressText.text);
-
-                if (newAddress && newAddress.trim() !== '') {
-                    this.serverAddressText.setText(newAddress.trim());
-                }
-            });
-
-            // 매칭 찾기 버튼
+            // 매칭 찾기 버튼 (중앙에 크게)
             this.matchButton = this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                340,
+                250,
                 '매칭 시작',
                 () => this.startMatchmaking(),
                 0x44FF44  // 초록색
@@ -101,7 +58,7 @@ class MultiplayerMenuScene extends Phaser.Scene {
             // 상태 표시 텍스트
             this.statusText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                420,
+                330,
                 '',
                 {
                     fontFamily: 'Jua',
@@ -116,7 +73,7 @@ class MultiplayerMenuScene extends Phaser.Scene {
             // 로딩 애니메이션 (처음엔 보이지 않음)
             this.loadingText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                480,
+                400,
                 '매칭 중.',
                 {
                     fontFamily: 'Orbitron',
@@ -130,7 +87,7 @@ class MultiplayerMenuScene extends Phaser.Scene {
             // 돌아가기 버튼
             this.backButton = this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                550,
+                480,
                 '← 돌아가기',
                 () => {
                     this.cleanup();
@@ -138,19 +95,6 @@ class MultiplayerMenuScene extends Phaser.Scene {
                 },
                 0x888888  // 회색
             );
-
-            // 안내 메시지
-            const helpText = this.add.text(
-                CONSTANTS.GAME.WIDTH / 2,
-                CONSTANTS.GAME.HEIGHT - 30,
-                '💡 Tip: 로컬 테스트 시 서버 주소는 localhost:3000',
-                {
-                    fontFamily: 'Jua',
-                    fontSize: '14px',
-                    fill: '#aaa'
-                }
-            );
-            helpText.setOrigin(0.5);
 
             if (CONSTANTS.GAME.DEBUG) {
                 console.log('[MultiplayerMenuScene] 생성 완료');
@@ -174,13 +118,10 @@ class MultiplayerMenuScene extends Phaser.Scene {
             this.matchButton.button.setFillStyle(0x666666);
             this.matchButton.buttonText.setText('매칭 중...');
 
-            // 서버 주소 가져오기
-            const serverAddress = this.serverAddressText.text;
-            const serverURL = serverAddress.startsWith('http')
-                ? serverAddress
-                : `http://${serverAddress}`;
+            // 고정된 서버 주소 사용
+            const serverURL = this.SERVER_URL;
 
-            this.statusText.setText(`서버 연결 중: ${serverAddress}`);
+            this.statusText.setText('서버 연결 중...');
 
             // Socket.io 연결
             this.socket = io(serverURL, {
