@@ -1016,7 +1016,8 @@ class OnlineGameScene extends Phaser.Scene {
         // 직업 선택 UI 제거
         this.removeJobSelectionUI();
 
-        if (this.socket && this.socket.connected) {
+        if (this.socket) {
+            // 이벤트 리스너 제거
             this.socket.off('opponentJobSelected');
             this.socket.off('gameStart');
             this.socket.off('opponentMove');
@@ -1027,11 +1028,28 @@ class OnlineGameScene extends Phaser.Scene {
             this.socket.off('opponentDied');
             this.socket.off('opponentDisconnected');
             this.socket.off('opponentAnimation');
+
+            // Socket 연결 끊기 (중요!)
+            if (this.socket.connected) {
+                this.socket.disconnect();
+            }
+
+            // Socket 참조 제거
+            this.socket = null;
         }
 
         if (this.myPlayer) {
             this.myPlayer.destroy();
         }
+
+        // 게임 상태 초기화
+        this.gameOver = false;
+        this.jobSelectionPhase = true;
+        this.selectedJob = null;
+        this.opponentJob = null;
+        this.selectionTimer = 20;
+        this.myHp = 100;
+        this.opponentHp = 100;
     }
 
     shutdown() {
