@@ -92,10 +92,22 @@ class MainMenuScene extends Phaser.Scene {
                 0x44FF44 // 초록색
             );
 
+            // 협동 보스 레이드 버튼 (온라인 버튼 아래)
+            const coopBossButton = this.createButton(
+                centerX,
+                480,
+                '🤝 협동 보스 레이드',
+                () => {
+                    // 협동 보스 레이드 메뉴로 이동
+                    this.scene.start('CoopBossMenuScene');
+                },
+                0xFF8800 // 주황색
+            );
+
             // 최고 점수 표시 (더 아래로 이동)
             this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                530,
+                560,
                 '',
                 {
                     fontFamily: 'Jua',

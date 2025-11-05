@@ -33,7 +33,8 @@ const io = socketIO(server, {
 // ==================================================
 // 5. 게임 방(Room) 관리 시스템
 // ==================================================
-const waitingPlayers = [];  // 매칭 대기 중인 플레이어 목록
+const waitingPlayers = [];  // 1v1 매칭 대기 중인 플레이어 목록
+const coopWaitingPlayers = [];  // 협동 보스 레이드 매칭 대기 중인 플레이어 목록
 const rooms = new Map();    // 게임 방 저장소 (roomId => room 정보)
 
 // 방 생성 함수
@@ -164,6 +165,46 @@ io.on('connection', (socket) => {
             waitingPlayers.push(socket);
             socket.emit('waitingForMatch');
             console.log(`[대기 중] ${socket.id} - 현재 대기자: ${waitingPlayers.length}명`);
+        }
+    });
+
+    // ============================================
+    // 6-1-2. 협동 보스 레이드 매칭 요청 처리
+    // ============================================
+    socket.on('findCoopMatch', () => {
+        console.log(`[협동 매칭 요청] ${socket.id}`);
+
+        // 이미 대기 중인 플레이어가 있으면 매칭
+        if (coopWaitingPlayers.length > 0) {
+            const partner = coopWaitingPlayers.shift();  // 대기자 꺼내기
+
+            // 협동 전용 방 ID 생성
+            const roomId = `coop_${Date.now()}`;
+
+            // 두 플레이어를 방에 입장시킴
+            partner.join(roomId);
+            socket.join(roomId);
+
+            // 두 플레이어에게 매칭 성공 알림
+            partner.emit('coopMatchFound', {
+                roomId,
+                playerNumber: 1,
+                opponentId: socket.id
+            });
+
+            socket.emit('coopMatchFound', {
+                roomId,
+                playerNumber: 2,
+                opponentId: partner.id
+            });
+
+            console.log(`[협동 매칭 성공] ${roomId} - Player1: ${partner.id}, Player2: ${socket.id}`);
+
+        } else {
+            // 대기자가 없으면 대기 목록에 추가
+            coopWaitingPlayers.push(socket);
+            socket.emit('waitingForMatch');
+            console.log(`[협동 대기 중] ${socket.id} - 현재 대기자: ${coopWaitingPlayers.length}명`);
         }
     });
 
@@ -321,11 +362,18 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         console.log(`[연결 해제] ${socket.id}`);
 
-        // 대기 목록에서 제거
+        // 1v1 대기 목록에서 제거
         const waitingIndex = waitingPlayers.indexOf(socket);
         if (waitingIndex !== -1) {
             waitingPlayers.splice(waitingIndex, 1);
-            console.log(`[대기 취소] ${socket.id} - 남은 대기자: ${waitingPlayers.length}명`);
+            console.log(`[대기 취소] ${socket.id} - 남은 1v1 대기자: ${waitingPlayers.length}명`);
+        }
+
+        // 협동 대기 목록에서 제거
+        const coopWaitingIndex = coopWaitingPlayers.indexOf(socket);
+        if (coopWaitingIndex !== -1) {
+            coopWaitingPlayers.splice(coopWaitingIndex, 1);
+            console.log(`[협동 대기 취소] ${socket.id} - 남은 협동 대기자: ${coopWaitingPlayers.length}명`);
         }
 
         // 게임 중이었다면 상대에게 알림
@@ -349,6 +397,25 @@ io.on('connection', (socket) => {
             playerId: socket.id
         });
     });
+
+    // ============================================
+    // 6-12. 협동 보스 레이드: 보스 상태 동기화
+    // ============================================
+    socket.on('bossSync', (data) => {
+        // data = { roomId, x, y, velocityX, velocityY, hp, phase, isAttacking, attackType }
+        // Host(Player 1)가 보스 상태를 Client(Player 2)에게 전송
+        socket.to(data.roomId).emit('bossSync', data);
+    });
+
+    // ============================================
+    // 6-13. 협동 보스 레이드: 플레이어 부활
+    // ============================================
+    socket.on('playerRevive', (data) => {
+        // data = { roomId, revivedPlayerNumber }
+        // 부활 이벤트를 상대방에게 전달
+        socket.to(data.roomId).emit('playerRevive', data);
+        console.log(`[부활] ${data.roomId} - Player ${data.revivedPlayerNumber} 부활됨`);
+    });
 });
 
 // ==================================================
@@ -360,7 +427,8 @@ app.get('/', (req, res) => {
         message: '2D 플랫포머 멀티플레이어 서버',
         connections: io.engine.clientsCount,
         rooms: rooms.size,
-        waitingPlayers: waitingPlayers.length
+        waitingPlayers: waitingPlayers.length,
+        coopWaitingPlayers: coopWaitingPlayers.length
     });
 });
 
@@ -370,6 +438,7 @@ app.get('/status', (req, res) => {
         activeConnections: io.engine.clientsCount,
         activeRooms: rooms.size,
         waitingPlayers: waitingPlayers.length,
+        coopWaitingPlayers: coopWaitingPlayers.length,
         uptime: process.uptime()
     });
 });
