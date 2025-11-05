@@ -95,7 +95,7 @@ class MainMenuScene extends Phaser.Scene {
             // 최고 점수 표시 (더 아래로 이동)
             this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                500,
+                530,
                 '',
                 {
                     fontFamily: 'Jua',
