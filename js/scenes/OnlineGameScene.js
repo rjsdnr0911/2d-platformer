@@ -536,8 +536,8 @@ class OnlineGameScene extends Phaser.Scene {
             const dx = this.myPlayer.sprite.x - data.x;
             const isFacingMe = (data.direction > 0 && dx > 0) || (data.direction < 0 && dx < 0);
 
-            // 공격 범위 내이고, 나를 보고 공격했으면 피해
-            if (distance < 80 && isFacingMe) {
+            // 공격 범위 확대 (80 → 150px) - 네트워크 지연 보상
+            if (distance < 150 && isFacingMe) {
                 let damage = 10;  // 기본
                 if (data.attackType === 'strong') damage = 20;
                 if (data.attackType === 'special') damage = 30;
@@ -547,8 +547,10 @@ class OnlineGameScene extends Phaser.Scene {
                 // 피격 이펙트 (파티클)
                 this.createHitEffect(this.myPlayer.sprite.x, this.myPlayer.sprite.y);
 
+                console.log(`[피격 성공!] ${data.attackType} - 거리: ${Math.round(distance)}px - ${damage} 데미지`);
+            } else {
                 if (CONSTANTS.GAME.DEBUG) {
-                    console.log(`[피격] ${data.attackType} 공격 받음: ${damage} 데미지`);
+                    console.log(`[피격 실패] 거리: ${Math.round(distance)}px, 방향: ${isFacingMe ? '맞음' : '틀림'}`);
                 }
             }
 
@@ -873,9 +875,11 @@ class OnlineGameScene extends Phaser.Scene {
             const dx = this.opponent.x - this.myPlayer.sprite.x;
             const isFacingOpponent = (direction > 0 && dx > 0) || (direction < 0 && dx < 0);
 
-            // 공격 범위 내이고, 상대를 보고 있으면
-            if (distance < 80 && isFacingOpponent) {
-                console.log(`[공격 적중!] ${attackType} - ${damage} 데미지`);
+            // 공격 범위 확대 (80 → 150px)
+            if (distance < 150 && isFacingOpponent) {
+                console.log(`[공격 적중!] ${attackType} - 거리: ${Math.round(distance)}px - ${damage} 데미지`);
+            } else if (CONSTANTS.GAME.DEBUG) {
+                console.log(`[공격 실패] 거리: ${Math.round(distance)}px, 방향: ${isFacingOpponent ? '맞음' : '틀림'}`);
             }
         }
     }
