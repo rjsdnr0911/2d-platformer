@@ -440,6 +440,23 @@ class OnlineGameScene extends Phaser.Scene {
         this.messageText.setScrollFactor(0);
         this.messageText.setDepth(uiDepth + 3);
         this.messageText.setVisible(false);
+
+        // 조작키 안내 (중앙 위)
+        const controlsText = this.isMobile
+            ? '화면 터치 버튼으로 조작'
+            : '이동: ←→  점프: ↑  대시: Shift  공격: Z/X/C';
+
+        this.controlsGuide = this.add.text(400, 70, controlsText, {
+            fontFamily: 'Jua',
+            fontSize: '14px',
+            fill: '#ffffff',
+            backgroundColor: '#00000088',
+            padding: { x: 10, y: 5 },
+            align: 'center'
+        });
+        this.controlsGuide.setOrigin(0.5);
+        this.controlsGuide.setScrollFactor(0);
+        this.controlsGuide.setDepth(uiDepth + 2);
     }
 
     // ============================================
