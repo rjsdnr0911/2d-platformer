@@ -702,19 +702,34 @@ class OnlineGameScene extends Phaser.Scene {
     // 플레이어에게 직업 능력 장착
     // ============================================
     equipAbility(player, jobKey) {
+        console.log(`[능력 장착] 직업: ${jobKey}`);
+
         if (jobKey === 'sword' && window.SwordAbility) {
             player.equipAbility(new SwordAbility(this, player), 0);
+            console.log('[능력 장착 완료] ⚔️ 검술');
         } else if (jobKey === 'magic' && window.MagicAbility) {
             player.equipAbility(new MagicAbility(this, player), 0);
+            console.log('[능력 장착 완료] 🔮 마법');
         } else if (jobKey === 'hammer' && window.HammerAbility) {
             player.equipAbility(new HammerAbility(this, player), 0);
+            console.log('[능력 장착 완료] 🔨 해머');
         } else if (jobKey === 'bow' && window.BowAbility) {
             player.equipAbility(new BowAbility(this, player), 0);
+            console.log('[능력 장착 완료] 🏹 활');
         } else {
             // 기본값: 검술
+            console.warn(`[능력 장착 실패] ${jobKey} - 기본값(검술) 사용`);
             if (window.SwordAbility) {
                 player.equipAbility(new SwordAbility(this, player), 0);
             }
+        }
+
+        // 장착 확인
+        const ability = player.getCurrentAbility();
+        if (ability) {
+            console.log(`[능력 확인] ${ability.name} 장착됨`);
+        } else {
+            console.error('[능력 확인] 능력 장착 실패!');
         }
     }
 
@@ -843,6 +858,27 @@ class OnlineGameScene extends Phaser.Scene {
     performAttack(attackType, damage) {
         if (!this.myPlayer || this.gameOver) return;
 
+        // 능력 쿨타임 체크 (서버 전송 전에 먼저 확인)
+        const ability = this.myPlayer.getCurrentAbility();
+        if (!ability) return;
+
+        let canAttack = false;
+        if (attackType === 'basic') {
+            canAttack = ability.canUseBasicAttack();
+        } else if (attackType === 'strong') {
+            canAttack = ability.canUseStrongAttack();
+        } else if (attackType === 'special') {
+            canAttack = ability.canUseSkill();
+        }
+
+        // 쿨타임 중이면 공격하지 않음
+        if (!canAttack) {
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log(`[공격 실패] ${attackType} 쿨타임 중`);
+            }
+            return;
+        }
+
         // 공격 애니메이션 재생
         if (attackType === 'basic') {
             this.myPlayer.basicAttack();
@@ -852,7 +888,7 @@ class OnlineGameScene extends Phaser.Scene {
             this.myPlayer.specialSkill();
         }
 
-        // 서버로 공격 정보 전송
+        // 서버로 공격 정보 전송 (쿨타임 체크 통과 시에만)
         const direction = this.myPlayer.facingRight ? 1 : -1;
         this.socket.emit('playerAttack', {
             roomId: this.roomId,
