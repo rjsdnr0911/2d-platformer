@@ -33,6 +33,10 @@ class OnlineGameScene extends Phaser.Scene {
         this.selectedJob = null;          // 내가 선택한 직업
         this.opponentJob = null;          // 상대방이 선택한 직업
         this.selectionTimer = 20;         // 20초 카운트다운
+
+        // 터치 컨트롤 (모바일용)
+        this.touchControls = null;
+        this.isMobile = false;
     }
 
     // ============================================
@@ -653,6 +657,17 @@ class OnlineGameScene extends Phaser.Scene {
             };
 
             // ============================================
+            // 6-1. 터치 컨트롤 초기화 (모바일에서만)
+            // ============================================
+            this.isMobile = MobileDetector.isMobile();
+            if (this.isMobile) {
+                this.touchControls = new TouchControls(this);
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log('모바일 터치 컨트롤 활성화');
+                }
+            }
+
+            // ============================================
             // 7. 게임 시작 알림
             // ============================================
             this.showMessage('게임 시작!', 2000);
@@ -697,45 +712,90 @@ class OnlineGameScene extends Phaser.Scene {
             // 1. 내 플레이어 입력 처리 (이동, 점프만)
             // 공격은 별도로 처리
 
-            // 좌우 이동
-            if (this.cursors.left.isDown) {
-                this.myPlayer.move(-1);
-            } else if (this.cursors.right.isDown) {
-                this.myPlayer.move(1);
-            }
+            // 터치 컨트롤 업데이트 (모바일인 경우)
+            if (this.isMobile && this.touchControls) {
+                // JustPressed 처리 (Player.update() 전에 먼저 처리)
+                if (this.touchControls.justPressed('jump')) {
+                    this.myPlayer.jump();
+                    // 서버에 점프 알림
+                    this.socket.emit('playerJump', {
+                        roomId: this.roomId
+                    });
+                }
 
-            // 점프
-            if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
-                this.myPlayer.jump();
-                // 서버에 점프 알림
-                this.socket.emit('playerJump', {
-                    roomId: this.roomId
-                });
-            }
+                if (this.touchControls.justPressed('dash')) {
+                    this.myPlayer.dash();
+                    // 서버에 대시 알림
+                    this.socket.emit('playerDash', {
+                        roomId: this.roomId,
+                        direction: this.myPlayer.facingRight ? 1 : -1
+                    });
+                }
 
-            // 대시
-            if (Phaser.Input.Keyboard.JustDown(this.keys.dash)) {
-                this.myPlayer.dash();
-                // 서버에 대시 알림
-                this.socket.emit('playerDash', {
-                    roomId: this.roomId,
-                    direction: this.myPlayer.facingRight ? 1 : -1
-                });
-            }
+                if (this.touchControls.justPressed('basicAttack')) {
+                    this.performAttack('basic', 10);
+                }
 
-            // 공격 (Z 키 - 기본 공격)
-            if (Phaser.Input.Keyboard.JustDown(this.keys.basicAttack)) {
-                this.performAttack('basic', 10);
-            }
+                if (this.touchControls.justPressed('strongAttack')) {
+                    this.performAttack('strong', 20);
+                }
 
-            // 강공격 (X 키)
-            if (Phaser.Input.Keyboard.JustDown(this.keys.strongAttack)) {
-                this.performAttack('strong', 20);
-            }
+                if (this.touchControls.justPressed('skill')) {
+                    this.performAttack('special', 30);
+                }
 
-            // 필살기 (C 키)
-            if (Phaser.Input.Keyboard.JustDown(this.keys.specialSkill)) {
-                this.performAttack('special', 30);
+                // 연속 입력 처리 (좌우 이동)
+                const touchInputs = this.touchControls.getInputs();
+                if (touchInputs.left) {
+                    this.myPlayer.move(-1);
+                } else if (touchInputs.right) {
+                    this.myPlayer.move(1);
+                }
+
+                // 터치 컨트롤 상태 업데이트
+                this.touchControls.update();
+            } else {
+                // 키보드 입력 처리
+                // 좌우 이동
+                if (this.cursors.left.isDown) {
+                    this.myPlayer.move(-1);
+                } else if (this.cursors.right.isDown) {
+                    this.myPlayer.move(1);
+                }
+
+                // 점프
+                if (Phaser.Input.Keyboard.JustDown(this.cursors.up)) {
+                    this.myPlayer.jump();
+                    // 서버에 점프 알림
+                    this.socket.emit('playerJump', {
+                        roomId: this.roomId
+                    });
+                }
+
+                // 대시
+                if (Phaser.Input.Keyboard.JustDown(this.keys.dash)) {
+                    this.myPlayer.dash();
+                    // 서버에 대시 알림
+                    this.socket.emit('playerDash', {
+                        roomId: this.roomId,
+                        direction: this.myPlayer.facingRight ? 1 : -1
+                    });
+                }
+
+                // 공격 (Z 키 - 기본 공격)
+                if (Phaser.Input.Keyboard.JustDown(this.keys.basicAttack)) {
+                    this.performAttack('basic', 10);
+                }
+
+                // 강공격 (X 키)
+                if (Phaser.Input.Keyboard.JustDown(this.keys.strongAttack)) {
+                    this.performAttack('strong', 20);
+                }
+
+                // 필살기 (C 키)
+                if (Phaser.Input.Keyboard.JustDown(this.keys.specialSkill)) {
+                    this.performAttack('special', 30);
+                }
             }
 
             // 애니메이션 업데이트
@@ -1015,6 +1075,12 @@ class OnlineGameScene extends Phaser.Scene {
         // 직업 선택 UI 제거
         this.removeJobSelectionUI();
 
+        // 터치 컨트롤 제거 (모바일인 경우)
+        if (this.touchControls) {
+            this.touchControls.destroy();
+            this.touchControls = null;
+        }
+
         if (this.socket) {
             // 이벤트 리스너 제거
             this.socket.off('opponentJobSelected');
@@ -1049,6 +1115,7 @@ class OnlineGameScene extends Phaser.Scene {
         this.selectionTimer = 20;
         this.myHp = 100;
         this.opponentHp = 100;
+        this.isMobile = false;
     }
 
     shutdown() {
