@@ -4,10 +4,49 @@ class MainMenuScene extends Phaser.Scene {
         super({ key: 'MainMenuScene' });
     }
 
+    preload() {
+        // 배경 이미지 로드
+        this.load.image('menuBackground', 'assets/1762535036743.jpg');
+    }
+
     create() {
         try {
-            // 배경색
-            this.cameras.main.setBackgroundColor(CONSTANTS.COLORS.SKY);
+            // 배경 이미지 추가 (가장 먼저, UI보다 뒤에)
+            const bg = this.add.image(
+                CONSTANTS.GAME.WIDTH / 2,
+                CONSTANTS.GAME.HEIGHT / 2,
+                'menuBackground'
+            );
+
+            // 화면에 맞게 크기 조절
+            const scaleX = CONSTANTS.GAME.WIDTH / bg.width;
+            const scaleY = CONSTANTS.GAME.HEIGHT / bg.height;
+            const scale = Math.max(scaleX, scaleY);
+            bg.setScale(scale);
+
+            // 흐릿한 효과 + 약간 어둡게 (UI가 잘 보이도록)
+            bg.setAlpha(0.6);  // 투명도 60%
+            bg.setTint(0x888888);  // 약간 어둡게
+
+            // 블러 효과 추가 (Phaser 3.60+)
+            if (bg.postFX) {
+                bg.postFX.addBlur(0, 2, 2, 0.8);
+            }
+
+            // 배경 위에 어두운 오버레이 추가 (선택사항)
+            const overlay = this.add.rectangle(
+                CONSTANTS.GAME.WIDTH / 2,
+                CONSTANTS.GAME.HEIGHT / 2,
+                CONSTANTS.GAME.WIDTH,
+                CONSTANTS.GAME.HEIGHT,
+                0x000000,
+                0.3  // 30% 어둡게
+            );
+            overlay.setDepth(0);
+            bg.setDepth(-1);
+
+            // 배경색 (대체용, 배경 이미지 뒤에)
+            this.cameras.main.setBackgroundColor('#1a1a2e');
 
             // 타이틀
             const title = this.add.text(
