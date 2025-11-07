@@ -181,6 +181,35 @@ io.on('connection', (socket) => {
             // 협동 전용 방 ID 생성
             const roomId = `coop_${Date.now()}`;
 
+            // 협동 방 객체 생성 및 저장
+            const coopRoom = {
+                id: roomId,
+                players: {
+                    player1: {
+                        id: partner.id,
+                        socket: partner,
+                        selectedJob: null,
+                        x: 100,
+                        y: 300,
+                        isAlive: true
+                    },
+                    player2: {
+                        id: socket.id,
+                        socket: socket,
+                        selectedJob: null,
+                        x: 700,
+                        y: 300,
+                        isAlive: true
+                    }
+                },
+                createdAt: Date.now(),
+                gameStarted: false,
+                jobSelectionPhase: true,
+                jobSelectionTimer: null
+            };
+
+            rooms.set(roomId, coopRoom);
+
             // 두 플레이어를 방에 입장시킴
             partner.join(roomId);
             socket.join(roomId);
@@ -199,6 +228,13 @@ io.on('connection', (socket) => {
             });
 
             console.log(`[협동 매칭 성공] ${roomId} - Player1: ${partner.id}, Player2: ${socket.id}`);
+
+            // 20초 타이머 시작 (직업 선택 시간)
+            coopRoom.jobSelectionTimer = setTimeout(() => {
+                startGame(roomId);
+            }, 20000);
+
+            console.log(`[직업 선택] ${roomId} - 20초 타이머 시작`);
 
         } else {
             // 대기자가 없으면 대기 목록에 추가
