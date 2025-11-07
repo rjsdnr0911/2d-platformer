@@ -24,23 +24,21 @@ class MainMenuScene extends Phaser.Scene {
             const scale = Math.max(scaleX, scaleY);
             bg.setScale(scale);
 
-            // 흐릿한 효과 + 약간 어둡게 (UI가 잘 보이도록)
-            bg.setAlpha(0.8);  // 투명도 80% (더 잘 보이게)
-            bg.setTint(0xAAAAAA);  // 살짝만 어둡게
+            // 배경처럼 느낌 주기 (또렷하지만 뒤로 물러난 느낌)
+            bg.setAlpha(0.85);  // 투명도 85%
+            bg.setTint(0x999999);  // 채도 낮추기 (회색톤)
 
-            // 블러 효과 추가 (Phaser 3.60+)
-            if (bg.postFX) {
-                bg.postFX.addBlur(0, 1.5, 1.5, 0.6);  // 블러 강도 줄임
-            }
+            // 블러 제거 - 선명하게 유지
+            // (블러 효과 없이 또렷하게)
 
-            // 배경 위에 어두운 오버레이 추가 (UI 가독성용)
+            // 배경 위에 반투명 흰색 오버레이 추가 (배경 느낌 강화)
             const overlay = this.add.rectangle(
                 CONSTANTS.GAME.WIDTH / 2,
                 CONSTANTS.GAME.HEIGHT / 2,
                 CONSTANTS.GAME.WIDTH,
                 CONSTANTS.GAME.HEIGHT,
                 0x000000,
-                0.15  // 15% 어둡게 (줄임)
+                0.25  // 25% 어둡게 (UI와 계층 분리)
             );
             overlay.setDepth(0);
             bg.setDepth(-1);
