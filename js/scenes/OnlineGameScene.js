@@ -172,22 +172,12 @@ class OnlineGameScene extends Phaser.Scene {
         );
         this.jobTitle.setOrigin(0.5);
 
-        // 타이머 텍스트
-        this.timerText = this.add.text(
-            400, 150,
-            `남은 시간: ${this.selectionTimer}초`,
-            {
-                fontFamily: 'Jua',
-                fontSize: '24px',
-                fill: '#ffff00',
-                fontStyle: 'bold'
-            }
-        );
-        this.timerText.setOrigin(0.5);
+        // 원형 카운트다운 게이지
+        this.createCircularTimer(400, 160, 50);
 
         // 설명 텍스트
         const desc = this.add.text(
-            400, 200,
+            400, 230,
             '20초 안에 직업을 선택하세요! (둘 다 선택하면 바로 시작)',
             {
                 fontFamily: 'Jua',
@@ -232,7 +222,7 @@ class OnlineGameScene extends Phaser.Scene {
             delay: 1000,
             callback: () => {
                 this.selectionTimer--;
-                this.timerText.setText(`남은 시간: ${this.selectionTimer}초`);
+                this.updateCircularTimer();
 
                 if (this.selectionTimer <= 0) {
                     this.jobSelectionInterval.remove();
@@ -240,6 +230,80 @@ class OnlineGameScene extends Phaser.Scene {
             },
             loop: true
         });
+    }
+
+    // ============================================
+    // 원형 타이머 생성
+    // ============================================
+    createCircularTimer(x, y, radius) {
+        const maxTime = 20;
+
+        // 배경 원 (회색)
+        const bgCircle = this.add.graphics();
+        bgCircle.lineStyle(8, 0x333333, 1);
+        bgCircle.strokeCircle(x, y, radius);
+
+        // 진행 원 (시간에 따라 줄어듦)
+        this.timerCircle = this.add.graphics();
+
+        // 중앙 텍스트 (남은 시간)
+        this.timerText = this.add.text(x, y, `${this.selectionTimer}`, {
+            fontFamily: 'Orbitron',
+            fontSize: '32px',
+            fill: '#ffff00',
+            fontStyle: 'bold'
+        });
+        this.timerText.setOrigin(0.5);
+
+        // 초기 그리기
+        this.updateCircularTimer();
+    }
+
+    // ============================================
+    // 원형 타이머 업데이트
+    // ============================================
+    updateCircularTimer() {
+        if (!this.timerCircle) return;
+
+        const maxTime = 20;
+        const x = 400;
+        const y = 160;
+        const radius = 50;
+
+        // 진행률 계산 (0 ~ 1)
+        const progress = this.selectionTimer / maxTime;
+
+        // 색상 계산 (남은 시간에 따라 녹색 -> 노란색 -> 빨간색)
+        let color;
+        if (progress > 0.5) {
+            color = 0x00ff00; // 녹색
+        } else if (progress > 0.25) {
+            color = 0xffff00; // 노란색
+        } else {
+            color = 0xff0000; // 빨간색
+        }
+
+        // 원 그리기 (시계 방향으로 줄어듦)
+        this.timerCircle.clear();
+        this.timerCircle.lineStyle(8, color, 1);
+        this.timerCircle.beginPath();
+        this.timerCircle.arc(x, y, radius, Phaser.Math.DegToRad(-90), Phaser.Math.DegToRad(-90 + 360 * progress), false);
+        this.timerCircle.strokePath();
+
+        // 텍스트 업데이트
+        this.timerText.setText(`${this.selectionTimer}`);
+        this.timerText.setColor(progress <= 0.25 ? '#ff0000' : '#ffff00');
+
+        // 5초 이하일 때 깜빡임 효과
+        if (this.selectionTimer <= 5 && this.selectionTimer > 0) {
+            this.tweens.add({
+                targets: [this.timerText, this.timerCircle],
+                alpha: 0.3,
+                duration: 250,
+                yoyo: true,
+                ease: 'Power2'
+            });
+        }
     }
 
     // ============================================

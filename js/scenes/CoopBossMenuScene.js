@@ -20,7 +20,7 @@ class CoopBossMenuScene extends Phaser.Scene {
             // 타이틀
             const title = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                80,
+                60,
                 '🤝 협동 보스 레이드',
                 {
                     fontFamily: 'Orbitron',
@@ -36,7 +36,7 @@ class CoopBossMenuScene extends Phaser.Scene {
             // 설명 텍스트
             const description = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                150,
+                130,
                 '2명이 협력하여 강력한 보스를 처치하세요!',
                 {
                     fontFamily: 'Jua',
@@ -49,16 +49,30 @@ class CoopBossMenuScene extends Phaser.Scene {
             // 매칭 찾기 버튼 (중앙에 크게)
             this.matchButton = this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                250,
+                200,
                 '매칭 시작',
                 () => this.startMatchmaking(),
                 0x44FF44  // 초록색
             );
 
-            // 상태 표시 텍스트
+            // 회전하는 로딩 아이콘 (처음엔 보이지 않음)
+            this.loadingIcon = this.add.text(
+                CONSTANTS.GAME.WIDTH / 2,
+                280,
+                '⟳',
+                {
+                    fontFamily: 'Arial',
+                    fontSize: '48px',
+                    fill: '#00FFFF'
+                }
+            );
+            this.loadingIcon.setOrigin(0.5);
+            this.loadingIcon.setVisible(false);
+
+            // 상태 표시 텍스트 (로딩 아이콘 아래)
             this.statusText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                330,
+                350,
                 '',
                 {
                     fontFamily: 'Jua',
@@ -70,24 +84,39 @@ class CoopBossMenuScene extends Phaser.Scene {
             );
             this.statusText.setOrigin(0.5);
 
-            // 로딩 애니메이션 (처음엔 보이지 않음)
-            this.loadingText = this.add.text(
+            // 게임 팁 표시 (깔끔한 박스 안에)
+            this.tipContainer = this.add.container(CONSTANTS.GAME.WIDTH / 2, 430);
+
+            const tipBg = this.add.rectangle(0, 0, 700, 80, 0x1a1a2e, 0.8);
+            tipBg.setStrokeStyle(2, 0x00FFFF);
+
+            this.tipText = this.add.text(0, 0, '', {
+                fontFamily: 'Jua',
+                fontSize: '16px',
+                fill: '#ffffff',
+                align: 'center',
+                wordWrap: { width: 660 }
+            });
+            this.tipText.setOrigin(0.5);
+
+            this.tipContainer.add([tipBg, this.tipText]);
+            this.tipContainer.setVisible(false);
+
+            // 취소 버튼 (매칭 중에만 표시, 강조된 빨간색)
+            this.cancelButton = this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                400,
-                '매칭 중.',
-                {
-                    fontFamily: 'Orbitron',
-                    fontSize: '24px',
-                    fill: '#00FFFF'
-                }
+                530,
+                '✕ 매칭 취소',
+                () => this.cancelMatchmaking(),
+                0xFF4444  // 빨간색
             );
-            this.loadingText.setOrigin(0.5);
-            this.loadingText.setVisible(false);
+            this.cancelButton.button.setVisible(false);
+            this.cancelButton.buttonText.setVisible(false);
 
             // 돌아가기 버튼
             this.backButton = this.createButton(
                 CONSTANTS.GAME.WIDTH / 2,
-                480,
+                530,
                 '← 돌아가기',
                 () => {
                     this.cleanup();
@@ -96,19 +125,15 @@ class CoopBossMenuScene extends Phaser.Scene {
                 0x888888  // 회색
             );
 
-            // 안내 문구 (하단)
-            const helpText = this.add.text(
-                CONSTANTS.GAME.WIDTH / 2,
-                540,
-                '💡 버튼이 반응하지 않으면 Ctrl+R로 새로고침 후 다시 시도하세요',
-                {
-                    fontFamily: 'Jua',
-                    fontSize: '14px',
-                    fill: '#aaaaaa',
-                    align: 'center'
-                }
-            );
-            helpText.setOrigin(0.5);
+            // 게임 팁 데이터
+            this.gameTips = [
+                '💡 Q/E 키로 능력을 교체하면 특별한 효과가 발동됩니다!',
+                '💡 보스의 패턴을 파악하고 협력하면 승리 확률이 높아집니다!',
+                '💡 F키로 쓰러진 동료를 부활시킬 수 있습니다! (HP 30 소모)',
+                '💡 대시(Shift)를 활용하여 보스의 공격을 회피하세요!',
+                '💡 각 직업마다 고유한 특수 스킬(C키)이 있습니다!'
+            ];
+            this.currentTipIndex = 0;
 
             if (CONSTANTS.GAME.DEBUG) {
                 console.log('[CoopBossMenuScene] 생성 완료');
@@ -128,9 +153,32 @@ class CoopBossMenuScene extends Phaser.Scene {
         try {
             this.isSearching = true;
 
-            // 버튼 비활성화
-            this.matchButton.button.setFillStyle(0x666666);
-            this.matchButton.buttonText.setText('매칭 중...');
+            // UI 전환: 매칭 시작 버튼 숨기기, 취소 버튼 보이기
+            this.matchButton.button.setVisible(false);
+            this.matchButton.buttonText.setVisible(false);
+            this.backButton.button.setVisible(false);
+            this.backButton.buttonText.setVisible(false);
+            this.cancelButton.button.setVisible(true);
+            this.cancelButton.buttonText.setVisible(true);
+
+            // 로딩 아이콘 표시 및 회전 애니메이션
+            this.loadingIcon.setVisible(true);
+            this.tweens.add({
+                targets: this.loadingIcon,
+                angle: 360,
+                duration: 1000,
+                repeat: -1,
+                ease: 'Linear'
+            });
+
+            // 팁 표시 시작
+            this.tipContainer.setVisible(true);
+            this.showNextTip();
+            this.tipRotationTimer = this.time.addEvent({
+                delay: 4000,
+                callback: () => this.showNextTip(),
+                loop: true
+            });
 
             // 고정된 서버 주소 사용
             const serverURL = this.SERVER_URL;
@@ -154,8 +202,6 @@ class CoopBossMenuScene extends Phaser.Scene {
             this.socket.on('connect', () => {
                 console.log('[Socket] 서버 연결 성공:', this.socket.id);
                 this.statusText.setText('✅ 서버 연결 완료! 파트너 찾는 중...');
-                this.loadingText.setVisible(true);
-                this.startLoadingAnimation();
 
                 // 협동 매칭 요청
                 this.socket.emit('findCoopMatch');
@@ -185,7 +231,12 @@ class CoopBossMenuScene extends Phaser.Scene {
             this.socket.on('coopMatchFound', (data) => {
                 console.log('[Socket] 협동 매칭 성공!', data);
                 this.statusText.setText('✅ 매칭 완료! 보스 레이드 시작...');
-                this.loadingText.setVisible(false);
+
+                // UI 정리
+                this.loadingIcon.setVisible(false);
+                this.tipContainer.setVisible(false);
+                this.cancelButton.button.setVisible(false);
+                this.cancelButton.buttonText.setVisible(false);
 
                 // 협동 보스 레이드 Scene으로 이동 (1초 후)
                 this.time.delayedCall(1000, () => {
@@ -207,18 +258,40 @@ class CoopBossMenuScene extends Phaser.Scene {
     }
 
     // ============================================
-    // 로딩 애니메이션
+    // 팁 로테이션
     // ============================================
-    startLoadingAnimation() {
-        let dotCount = 1;
-        this.loadingTimer = this.time.addEvent({
-            delay: 500,
-            callback: () => {
-                dotCount = (dotCount % 3) + 1;
-                this.loadingText.setText('매칭 중' + '.'.repeat(dotCount));
-            },
-            loop: true
+    showNextTip() {
+        if (!this.gameTips || this.gameTips.length === 0) return;
+
+        const tip = this.gameTips[this.currentTipIndex];
+        this.tipText.setText(tip);
+
+        // 페이드 인 효과
+        this.tipText.setAlpha(0);
+        this.tweens.add({
+            targets: this.tipText,
+            alpha: 1,
+            duration: 300,
+            ease: 'Power2'
         });
+
+        this.currentTipIndex = (this.currentTipIndex + 1) % this.gameTips.length;
+    }
+
+    // ============================================
+    // 매칭 취소
+    // ============================================
+    cancelMatchmaking() {
+        console.log('[취소] 매칭 취소 요청');
+
+        // 소켓 정리
+        if (this.socket) {
+            this.socket.disconnect();
+            this.socket = null;
+        }
+
+        // UI 리셋
+        this.resetMatchButton();
     }
 
     // ============================================
@@ -226,13 +299,27 @@ class CoopBossMenuScene extends Phaser.Scene {
     // ============================================
     resetMatchButton() {
         this.isSearching = false;
-        this.matchButton.button.setFillStyle(0x44FF44);
-        this.matchButton.buttonText.setText('매칭 시작');
-        this.loadingText.setVisible(false);
 
-        if (this.loadingTimer) {
-            this.loadingTimer.remove();
+        // 버튼 전환
+        this.matchButton.button.setVisible(true);
+        this.matchButton.buttonText.setVisible(true);
+        this.backButton.button.setVisible(true);
+        this.backButton.buttonText.setVisible(true);
+        this.cancelButton.button.setVisible(false);
+        this.cancelButton.buttonText.setVisible(false);
+
+        // 로딩 아이콘 및 팁 숨기기
+        this.loadingIcon.setVisible(false);
+        this.tipContainer.setVisible(false);
+
+        // 팁 타이머 정리
+        if (this.tipRotationTimer) {
+            this.tipRotationTimer.remove();
+            this.tipRotationTimer = null;
         }
+
+        // 상태 텍스트 초기화
+        this.statusText.setText('');
     }
 
     // ============================================
@@ -289,9 +376,10 @@ class CoopBossMenuScene extends Phaser.Scene {
             this.socket = null;
         }
 
-        if (this.loadingTimer) {
-            this.loadingTimer.remove();
-            this.loadingTimer = null;
+        // 팁 타이머 정리
+        if (this.tipRotationTimer) {
+            this.tipRotationTimer.remove();
+            this.tipRotationTimer = null;
         }
 
         this.isSearching = false;
