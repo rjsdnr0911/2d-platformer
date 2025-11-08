@@ -18,16 +18,17 @@ class ThunderWarriorSkull extends SkullBase {
             basicAttack: function() {
                 const direction = this.flipX ? -1 : 1;
 
+                const hitboxX = this.x + direction * 45;
+                const hitboxY = this.y;
+
                 // 전기 검 히트박스
                 const thunderBlade = this.scene.add.rectangle(
-                    this.x + direction * 45,
-                    this.y,
+                    hitboxX,
+                    hitboxY,
                     60, 50,
                     0x00FFFF, 0.5
                 );
                 thunderBlade.damage = 18 * this.attackMultiplier;
-
-                this.scene.physics.add.existing(thunderBlade);
 
                 // 번개 이펙트
                 const lightning = this.scene.add.graphics();
@@ -41,21 +42,32 @@ class ThunderWarriorSkull extends SkullBase {
                     lightning.lineBetween(x1, y1, x2, y2);
                 }
 
-                // 적과 충돌
+                // 적과 충돌 체크 (거리 기반)
                 if (this.scene.enemyList) {
                     this.scene.enemyList.forEach(enemy => {
-                        if (enemy.active && this.scene.physics.overlap(thunderBlade, enemy.sprite)) {
-                            enemy.takeDamage(thunderBlade.damage);
+                        if (enemy && enemy.active && enemy.sprite) {
+                            const distance = Phaser.Math.Distance.Between(
+                                hitboxX, hitboxY,
+                                enemy.sprite.x, enemy.sprite.y
+                            );
 
-                            // 감전 효과 (이동속도 -30%, 2초)
-                            enemy.applyShock(0.3, 2000);
+                            if (distance < 60) {
+                                enemy.takeDamage(thunderBlade.damage);
 
-                            // 10% 확률로 연쇄 번개
-                            if (Math.random() < 0.1) {
-                                this.chainLightning(this.scene, enemy, thunderBlade.damage * 0.6);
+                                // 감전 효과 (이동속도 -30%, 2초)
+                                if (enemy.applyShock) {
+                                    enemy.applyShock(0.3, 2000);
+                                }
+
+                                // 10% 확률로 연쇄 번개
+                                if (Math.random() < 0.1 && this.chainLightning) {
+                                    this.chainLightning(this.scene, enemy, thunderBlade.damage * 0.6);
+                                }
+
+                                if (enemy.sprite && enemy.sprite.body) {
+                                    enemy.knockback(direction * 150, -70);
+                                }
                             }
-
-                            enemy.knockback(direction * 150, -70);
                         }
                     });
                 }
@@ -66,8 +78,12 @@ class ThunderWarriorSkull extends SkullBase {
 
                 // 이펙트 제거
                 this.scene.time.delayedCall(150, () => {
-                    thunderBlade.destroy();
-                    lightning.destroy();
+                    if (thunderBlade && thunderBlade.active) {
+                        thunderBlade.destroy();
+                    }
+                    if (lightning) {
+                        lightning.destroy();
+                    }
                 });
             },
 

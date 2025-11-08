@@ -18,10 +18,13 @@ class AssassinSkull extends SkullBase {
             basicAttack: function() {
                 const direction = this.flipX ? -1 : 1;
 
-                // 단검 공격 히트박스
+                const hitboxX = this.x + direction * 40;
+                const hitboxY = this.y;
+
+                // 단검 공격 히트박스 (시각적)
                 const dagger = this.scene.add.rectangle(
-                    this.x + direction * 40,
-                    this.y,
+                    hitboxX,
+                    hitboxY,
                     50, 40,
                     0x8800FF, 0.3
                 );
@@ -32,45 +35,56 @@ class AssassinSkull extends SkullBase {
                 const baseDamage = 14 * this.attackMultiplier;
                 dagger.damage = isCritical ? baseDamage * 2 : baseDamage;
 
-                this.scene.physics.add.existing(dagger);
-
-                // 적과 충돌
+                // 적과 충돌 체크 (거리 기반)
                 if (this.scene.enemyList) {
                     this.scene.enemyList.forEach(enemy => {
-                        if (enemy.active && this.scene.physics.overlap(dagger, enemy.sprite)) {
-                            enemy.takeDamage(dagger.damage);
+                        if (enemy && enemy.active && enemy.sprite) {
+                            const distance = Phaser.Math.Distance.Between(
+                                hitboxX, hitboxY,
+                                enemy.sprite.x, enemy.sprite.y
+                            );
 
-                            // 크리티컬 이펙트
-                            if (isCritical) {
-                                const critText = this.scene.add.text(
-                                    enemy.sprite.x,
-                                    enemy.sprite.y - 40,
-                                    'CRITICAL!',
-                                    {
-                                        fontFamily: 'Orbitron',
-                                        fontSize: '16px',
-                                        fill: '#FF0000',
-                                        fontStyle: 'bold'
-                                    }
-                                );
-                                critText.setOrigin(0.5);
+                            if (distance < 50) {
+                                enemy.takeDamage(dagger.damage);
 
-                                this.scene.tweens.add({
-                                    targets: critText,
-                                    y: critText.y - 30,
-                                    alpha: 0,
-                                    duration: 800,
-                                    onComplete: () => critText.destroy()
-                                });
+                                // 크리티컬 이펙트
+                                if (isCritical) {
+                                    const critText = this.scene.add.text(
+                                        enemy.sprite.x,
+                                        enemy.sprite.y - 40,
+                                        'CRITICAL!',
+                                        {
+                                            fontFamily: 'Orbitron',
+                                            fontSize: '16px',
+                                            fill: '#FF0000',
+                                            fontStyle: 'bold'
+                                        }
+                                    );
+                                    critText.setOrigin(0.5);
+
+                                    this.scene.tweens.add({
+                                        targets: critText,
+                                        y: critText.y - 30,
+                                        alpha: 0,
+                                        duration: 800,
+                                        onComplete: () => critText.destroy()
+                                    });
+                                }
+
+                                if (enemy.sprite && enemy.sprite.body) {
+                                    enemy.knockback(direction * 120, -50);
+                                }
                             }
-
-                            enemy.knockback(direction * 120, -50);
                         }
                     });
                 }
 
                 // 즉시 제거
-                this.scene.time.delayedCall(100, () => dagger.destroy());
+                this.scene.time.delayedCall(100, () => {
+                    if (dagger && dagger.active) {
+                        dagger.destroy();
+                    }
+                });
             },
 
             // 스킬 1: 연막탄 (2초 은신)

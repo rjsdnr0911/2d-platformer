@@ -25,6 +25,7 @@ class FireMageSkull extends SkullBase {
                     10, 0xFF4400, 1.0
                 );
                 fireball.damage = 15 * this.attackMultiplier;
+                fireball.hasHit = false;
 
                 this.scene.physics.add.existing(fireball);
                 fireball.body.setVelocityX(direction * 300);
@@ -39,38 +40,61 @@ class FireMageSkull extends SkullBase {
                     repeat: -1
                 });
 
-                // 적과 충돌
-                if (this.scene.enemyList) {
-                    this.scene.enemyList.forEach(enemy => {
-                        this.scene.physics.add.overlap(fireball, enemy.sprite, () => {
-                            if (enemy.active && fireball.active) {
-                                enemy.takeDamage(fireball.damage);
+                // 주기적으로 적과 충돌 체크
+                const checkCollision = this.scene.time.addEvent({
+                    delay: 16,
+                    callback: () => {
+                        if (!fireball.active || fireball.hasHit) {
+                            checkCollision.remove();
+                            return;
+                        }
 
-                                // 화상 부여 (3초간 초당 5 피해)
-                                enemy.applyBurn(5, 3000);
+                        if (this.scene.enemyList) {
+                            this.scene.enemyList.forEach(enemy => {
+                                if (enemy && enemy.active && enemy.sprite && !fireball.hasHit) {
+                                    const distance = Phaser.Math.Distance.Between(
+                                        fireball.x, fireball.y,
+                                        enemy.sprite.x, enemy.sprite.y
+                                    );
 
-                                // 폭발 이펙트
-                                const explosion = this.scene.add.circle(
-                                    fireball.x, fireball.y,
-                                    15, 0xFF4400, 0.7
-                                );
-                                this.scene.tweens.add({
-                                    targets: explosion,
-                                    scale: 2,
-                                    alpha: 0,
-                                    duration: 300,
-                                    onComplete: () => explosion.destroy()
-                                });
+                                    if (distance < 25) {
+                                        enemy.takeDamage(fireball.damage);
 
-                                fireball.destroy();
-                            }
-                        });
-                    });
-                }
+                                        // 화상 부여 (3초간 초당 5 피해)
+                                        if (enemy.applyBurn) {
+                                            enemy.applyBurn(5, 3000);
+                                        }
+
+                                        // 폭발 이펙트
+                                        const explosion = this.scene.add.circle(
+                                            fireball.x, fireball.y,
+                                            15, 0xFF4400, 0.7
+                                        );
+                                        this.scene.tweens.add({
+                                            targets: explosion,
+                                            scale: 2,
+                                            alpha: 0,
+                                            duration: 300,
+                                            onComplete: () => explosion.destroy()
+                                        });
+
+                                        fireball.hasHit = true;
+                                        fireball.destroy();
+                                        checkCollision.remove();
+                                    }
+                                }
+                            });
+                        }
+                    },
+                    loop: true
+                });
 
                 // 2초 후 제거
                 this.scene.time.delayedCall(2000, () => {
-                    if (fireball.active) fireball.destroy();
+                    if (fireball.active) {
+                        fireball.destroy();
+                        checkCollision.remove();
+                    }
                 });
             },
 
