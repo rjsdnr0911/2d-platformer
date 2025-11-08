@@ -48,12 +48,21 @@ class WarriorSkull extends SkullBase {
 
                     player.scene.physics.add.existing(slash);
 
-                    // 적과 충돌
+                    // 적과 충돌 (거리 기반)
                     if (player.scene.enemyList) {
                         player.scene.enemyList.forEach(enemy => {
-                            if (enemy.active && player.scene.physics.overlap(slash, enemy.sprite)) {
-                                enemy.takeDamage(slash.damage);
-                                enemy.knockback(direction * 200, -100);
+                            if (enemy && enemy.active && enemy.sprite) {
+                                const distance = Phaser.Math.Distance.Between(
+                                    slash.x, slash.y,
+                                    enemy.sprite.x, enemy.sprite.y
+                                );
+
+                                if (distance < 60) {
+                                    enemy.takeDamage(slash.damage);
+                                    if (enemy.sprite && enemy.sprite.body) {
+                                        enemy.knockback(direction * 200, -100);
+                                    }
+                                }
                             }
                         });
                     }

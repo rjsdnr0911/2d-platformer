@@ -12,9 +12,8 @@ class RoguelikePlayer {
         this.sprite.body.setCollideWorldBounds(true);
         this.sprite.body.setMaxVelocity(300, 1000);
 
-        // 충돌 박스 조정
-        this.sprite.body.setSize(40, 40);
-        this.sprite.body.setOffset(-20, -20);
+        // 충돌 박스 조정 (원형의 중심 기준)
+        this.sprite.body.setCircle(20);
 
         // 위치 프로퍼티 포워딩
         Object.defineProperties(this, {
@@ -224,27 +223,45 @@ class RoguelikePlayer {
     defaultBasicAttack() {
         const direction = this.flipX ? -1 : 1;
 
+        const hitboxX = this.x + direction * 40;
+        const hitboxY = this.y;
+
+        // 시각적 히트박스 (디버그용)
         const hitbox = this.scene.add.rectangle(
-            this.x + direction * 40,
-            this.y,
+            hitboxX,
+            hitboxY,
             50, 50,
             0xFFFFFF, 0.3
         );
 
-        this.scene.physics.add.existing(hitbox);
-
-        // 적과 충돌
+        // 적과 충돌 체크 (거리 기반)
         if (this.scene.enemyList) {
             this.scene.enemyList.forEach(enemy => {
-                if (enemy.active && this.scene.physics.overlap(hitbox, enemy.sprite)) {
-                    const damage = 10 * this.attackMultiplier;
-                    enemy.takeDamage(damage);
-                    enemy.knockback(direction * 150, -80);
+                if (enemy && enemy.active && enemy.sprite) {
+                    const distance = Phaser.Math.Distance.Between(
+                        hitboxX, hitboxY,
+                        enemy.sprite.x, enemy.sprite.y
+                    );
+
+                    // 히트박스 범위 내에 있으면 피격
+                    if (distance < 50) {
+                        const damage = 10 * this.attackMultiplier;
+                        enemy.takeDamage(damage);
+
+                        // 넉백
+                        if (enemy.sprite && enemy.sprite.body) {
+                            enemy.knockback(direction * 150, -80);
+                        }
+                    }
                 }
             });
         }
 
-        this.scene.time.delayedCall(100, () => hitbox.destroy());
+        this.scene.time.delayedCall(100, () => {
+            if (hitbox && hitbox.active) {
+                hitbox.destroy();
+            }
+        });
     }
 
     // 스킬 사용
