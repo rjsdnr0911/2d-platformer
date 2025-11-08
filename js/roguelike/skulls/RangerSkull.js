@@ -26,26 +26,48 @@ class RangerSkull extends SkullBase {
                     0xFFD700
                 );
                 arrow.damage = 12 * this.attackMultiplier;
+                arrow.hasHit = false;
 
                 this.scene.physics.add.existing(arrow);
                 arrow.body.setVelocityX(direction * 400);
                 arrow.body.setAllowGravity(false);
 
-                // 적과 충돌
-                if (this.scene.enemyList) {
-                    this.scene.enemyList.forEach(enemy => {
-                        this.scene.physics.add.overlap(arrow, enemy.sprite, () => {
-                            if (enemy.active && arrow.active) {
-                                enemy.takeDamage(arrow.damage);
-                                arrow.destroy();
-                            }
-                        });
-                    });
-                }
+                // 주기적으로 적과 충돌 체크
+                const checkCollision = this.scene.time.addEvent({
+                    delay: 16,
+                    callback: () => {
+                        if (!arrow.active || arrow.hasHit) {
+                            checkCollision.remove();
+                            return;
+                        }
 
-                // 화면 밖으로 나가면 제거
+                        if (this.scene.enemyList) {
+                            this.scene.enemyList.forEach(enemy => {
+                                if (enemy && enemy.active && enemy.sprite && !arrow.hasHit) {
+                                    const distance = Phaser.Math.Distance.Between(
+                                        arrow.x, arrow.y,
+                                        enemy.sprite.x, enemy.sprite.y
+                                    );
+
+                                    if (distance < 25) {
+                                        enemy.takeDamage(arrow.damage);
+                                        arrow.hasHit = true;
+                                        arrow.destroy();
+                                        checkCollision.remove();
+                                    }
+                                }
+                            });
+                        }
+                    },
+                    loop: true
+                });
+
+                // 2초 후 제거
                 this.scene.time.delayedCall(2000, () => {
-                    if (arrow.active) arrow.destroy();
+                    if (arrow.active) {
+                        arrow.destroy();
+                        checkCollision.remove();
+                    }
                 });
             },
 
