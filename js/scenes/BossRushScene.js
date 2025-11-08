@@ -1050,6 +1050,11 @@ class BossRushScene extends Phaser.Scene {
         try {
             if (!window.player) return;
 
+            // 증강 시스템 업데이트
+            if (this.augmentSystem) {
+                this.augmentSystem.update();
+            }
+
             // 터치 입력과 키보드 입력 통합
             let inputCursors = this.cursors;
             let inputKeys = this.keys;
