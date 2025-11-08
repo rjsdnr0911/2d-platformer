@@ -59,11 +59,14 @@ class AugmentEffectHandler {
 
     // 검기 발사
     swordBeam() {
-        const originalAttack = this.player.getCurrentAbility().basicAttack;
+        const ability = this.player.getCurrentAbility();
+        if (!ability || !ability.basicAttack) return { update: () => {} };
 
-        this.player.getCurrentAbility().basicAttack = () => {
+        const originalAttack = ability.basicAttack.bind(ability);
+
+        ability.basicAttack = () => {
             // 기본 공격 실행
-            originalAttack.call(this.player.getCurrentAbility());
+            originalAttack();
 
             // 검기 발사
             const beam = this.scene.add.rectangle(
@@ -78,29 +81,30 @@ class AugmentEffectHandler {
             beam.setData('damage', 15);
             beam.setData('type', 'playerAttack');
 
-            // 검기 이펙트
-            const particles = this.scene.add.particles(beam.x, beam.y, 'particle', {
-                speed: { min: 50, max: 100 },
-                scale: { start: 0.5, end: 0 },
-                blendMode: 'ADD',
-                lifespan: 300,
-                tint: 0x00FFFF
+            // 검기 트레일 효과 (파티클 대신 간단한 효과)
+            beam.setAlpha(0.8);
+            this.scene.tweens.add({
+                targets: beam,
+                alpha: 0.3,
+                duration: 500,
+                yoyo: true,
+                repeat: -1
             });
 
             // 적과 충돌 처리
-            this.scene.physics.add.overlap(beam, this.scene.boss?.sprite, (beamObj, bossSprite) => {
-                const bossEntity = bossSprite.getData('entity');
-                if (bossEntity && bossEntity.isAlive) {
-                    bossEntity.takeDamage(beamObj.getData('damage'));
-                    beamObj.destroy();
-                    particles.destroy();
-                }
-            });
+            if (this.scene.boss && this.scene.boss.sprite) {
+                this.scene.physics.add.overlap(beam, this.scene.boss.sprite, (beamObj, bossSprite) => {
+                    const bossEntity = bossSprite.getData('entity');
+                    if (bossEntity && bossEntity.isAlive) {
+                        bossEntity.takeDamage(beamObj.getData('damage'));
+                        beamObj.destroy();
+                    }
+                });
+            }
 
             // 3초 후 자동 제거
             this.scene.time.delayedCall(3000, () => {
-                if (beam.active) beam.destroy();
-                if (particles.active) particles.destroy();
+                if (beam && beam.active) beam.destroy();
             });
         };
 
@@ -283,15 +287,9 @@ class AugmentEffectHandler {
         this.scene.physics.add.existing(meteor);
         meteor.body.setAllowGravity(false);
 
-        // 파티클 효과
-        const trail = this.scene.add.particles(meteor.x, meteor.y, 'particle', {
-            speed: { min: 20, max: 50 },
-            scale: { start: 1, end: 0 },
-            blendMode: 'ADD',
-            lifespan: 500,
-            tint: 0xFF4500,
-            follow: meteor
-        });
+        // 트레일 효과 (파티클 대신 간단한 원 효과)
+        const trail1 = this.scene.add.circle(targetX, -100, 20, 0xFF4500, 0.5);
+        const trail2 = this.scene.add.circle(targetX, -100, 30, 0xFF0000, 0.3);
 
         // 낙하
         this.scene.tweens.add({
@@ -299,12 +297,31 @@ class AugmentEffectHandler {
             y: targetY,
             duration: 1000,
             ease: 'Power2',
+            onUpdate: () => {
+                // 트레일 위치 업데이트
+                if (trail1.active) {
+                    trail1.x = meteor.x;
+                    trail1.y = meteor.y - 20;
+                }
+                if (trail2.active) {
+                    trail2.x = meteor.x;
+                    trail2.y = meteor.y - 35;
+                }
+            },
             onComplete: () => {
                 // 폭발
                 this.createExplosion(meteor.x, meteor.y, 120, 50);
                 meteor.destroy();
-                trail.destroy();
+                if (trail1.active) trail1.destroy();
+                if (trail2.active) trail2.destroy();
             }
+        });
+
+        // 트레일 페이드 아웃
+        this.scene.tweens.add({
+            targets: [trail1, trail2],
+            alpha: 0,
+            duration: 1000
         });
     }
 
@@ -532,11 +549,19 @@ class AugmentEffectHandler {
         // 모든 적의 속도 50% 감소
         return {
             update: () => {
-                if (this.scene.boss && this.scene.boss.sprite.body) {
-                    // 보스 이동속도 감소 (기존 속도의 50%)
+                if (this.scene.boss && this.scene.boss.sprite && this.scene.boss.sprite.body) {
+                    // 보스 속도 감소 (velocity 직접 조정)
                     if (!this.scene.boss.timeWarpApplied) {
-                        this.scene.boss.moveSpeed = (this.scene.boss.moveSpeed || 100) * 0.5;
-                        this.scene.boss.timeWarpApplied = true;
+                        // 매 프레임마다 속도를 50%로 제한
+                        const velocityX = this.scene.boss.sprite.body.velocity.x;
+                        const velocityY = this.scene.boss.sprite.body.velocity.y;
+
+                        if (Math.abs(velocityX) > 0) {
+                            this.scene.boss.sprite.body.setVelocityX(velocityX * 0.5);
+                        }
+                        if (Math.abs(velocityY) > 0) {
+                            this.scene.boss.sprite.body.setVelocityY(velocityY * 0.5);
+                        }
                     }
                 }
             }
