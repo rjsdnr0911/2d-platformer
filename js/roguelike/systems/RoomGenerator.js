@@ -490,8 +490,8 @@ class RoomGenerator {
 
             // 회복 이펙트
             const healEffect = this.scene.add.circle(
-                this.scene.player.x,
-                this.scene.player.y,
+                this.scene.player.sprite.x,
+                this.scene.player.sprite.y,
                 30, 0x00FF00, 0.6
             );
 
@@ -567,9 +567,9 @@ class RoomGenerator {
                 this.generateRoom(this.currentFloor);
 
                 // 플레이어 위치 초기화
-                if (this.scene.player) {
-                    this.scene.player.x = 100;
-                    this.scene.player.y = this.roomHeight - 200;
+                if (this.scene.player && this.scene.player.sprite && this.scene.player.sprite.body) {
+                    this.scene.player.sprite.x = 100;
+                    this.scene.player.sprite.y = this.roomHeight - 200;
                     this.scene.player.sprite.body.setVelocity(0, 0);
                 }
 

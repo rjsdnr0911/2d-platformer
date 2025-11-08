@@ -1,4 +1,4 @@
-// 로그라이크 모드 전용 플레이어 클래스 (안정성 우선 재구현)
+// 로그라이크 모드 전용 플레이어 클래스 (스컬 시스템 통합)
 class RoguelikePlayer {
     constructor(scene, x, y) {
         this.scene = scene;
@@ -22,32 +22,65 @@ class RoguelikePlayer {
         this.sprite.setMaxVelocity(300, 1000);
         this.sprite.body.setSize(30, 30);
 
-        // 기본 스탯
+        // 기본 스탯 (스컬에 의해 변경됨)
         this.maxHealth = 100;
         this.health = 100;
         this.moveSpeed = 200;
         this.jumpVelocity = -400;
         this.attackPower = 10;
         this.attackRange = 60;
+        this.attackMultiplier = 1.0;
 
         // 상태
         this.isInvincible = false;
         this.canAttack = true;
         this.attackCooldown = 300;
 
+        // 스킬 관련
+        this.skill1 = null;
+        this.skill2 = null;
+        this.skill1Cooldown = 3000;
+        this.skill2Cooldown = 8000;
+        this.lastSkill1Time = 0;
+        this.lastSkill2Time = 0;
+
         // 입력
         this.keys = scene.input.keyboard.addKeys({
             left: Phaser.Input.Keyboard.KeyCodes.LEFT,
             right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
             up: Phaser.Input.Keyboard.KeyCodes.UP,
-            z: Phaser.Input.Keyboard.KeyCodes.Z  // 기본 공격
+            z: Phaser.Input.Keyboard.KeyCodes.Z,      // 기본 공격
+            x: Phaser.Input.Keyboard.KeyCodes.X,      // 스킬 1
+            c: Phaser.Input.Keyboard.KeyCodes.C,      // 스킬 2
+            space: Phaser.Input.Keyboard.KeyCodes.SPACE  // 스컬 교체
         });
+
+        // 스컬 매니저 (나중에 초기화)
+        this.skullManager = null;
+
+        // 기본 공격 함수 (스컬에 의해 오버라이드됨)
+        this.basicAttack = this.defaultBasicAttack;
 
         // HP UI 생성
         this.createHealthUI();
 
         if (CONSTANTS.GAME.DEBUG) {
-            console.log('RoguelikePlayer created (simplified)');
+            console.log('RoguelikePlayer created with Skull system');
+        }
+    }
+
+    // 스컬 매니저 초기화 (Scene에서 호출)
+    initSkullManager(startingSkull = null) {
+        this.skullManager = new SkullManager(this);
+        this.skullManager.createUI(this.scene);
+
+        // 시작 스컬 장착
+        if (startingSkull) {
+            this.skullManager.equipSkull(startingSkull, 0);
+        }
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('SkullManager initialized');
         }
     }
 
@@ -108,6 +141,14 @@ class RoguelikePlayer {
         this.handleMovement();
         this.handleJump();
         this.handleAttack(time);
+        this.handleSkills(time);
+        this.handleSkullSwap();
+
+        // 스컬 매니저 업데이트
+        if (this.skullManager) {
+            this.skullManager.update(time, delta);
+        }
+
         this.updateHealthUI();
     }
 
@@ -133,10 +174,13 @@ class RoguelikePlayer {
         }
     }
 
-    // 공격 (거리 기반만 사용)
+    // 공격 (기본 공격 또는 스컬의 공격)
     handleAttack(time) {
         if (Phaser.Input.Keyboard.JustDown(this.keys.z) && this.canAttack) {
-            this.performAttack();
+            // 스컬의 기본 공격 실행
+            if (typeof this.basicAttack === 'function') {
+                this.basicAttack();
+            }
 
             // 공격 쿨다운
             this.canAttack = false;
@@ -146,13 +190,57 @@ class RoguelikePlayer {
         }
     }
 
-    // 공격 실행
-    performAttack() {
+    // 스킬 사용
+    handleSkills(time) {
+        // 스킬 1 (X)
+        if (Phaser.Input.Keyboard.JustDown(this.keys.x)) {
+            if (this.skill1 && time - this.lastSkill1Time >= this.skill1Cooldown) {
+                if (typeof this.skill1.execute === 'function') {
+                    this.skill1.execute(this);
+                    this.lastSkill1Time = time;
+
+                    if (CONSTANTS.GAME.DEBUG) {
+                        console.log('Skill 1 used');
+                    }
+                }
+            }
+        }
+
+        // 스킬 2 (C)
+        if (Phaser.Input.Keyboard.JustDown(this.keys.c)) {
+            if (this.skill2 && time - this.lastSkill2Time >= this.skill2Cooldown) {
+                if (typeof this.skill2.execute === 'function') {
+                    this.skill2.execute(this);
+                    this.lastSkill2Time = time;
+
+                    if (CONSTANTS.GAME.DEBUG) {
+                        console.log('Skill 2 used');
+                    }
+                }
+            }
+        }
+    }
+
+    // 스컬 교체
+    handleSkullSwap() {
+        if (Phaser.Input.Keyboard.JustDown(this.keys.space)) {
+            if (this.skullManager && this.skullManager.canSwap()) {
+                const swapped = this.skullManager.swap();
+
+                if (swapped && CONSTANTS.GAME.DEBUG) {
+                    console.log('Skull swapped');
+                }
+            }
+        }
+    }
+
+    // 기본 공격 (스컬이 없을 때)
+    defaultBasicAttack() {
         const direction = this.sprite.flipX ? -1 : 1;
         const attackX = this.sprite.x + direction * 40;
         const attackY = this.sprite.y;
 
-        // 공격 이펙트 (시각적 피드백)
+        // 공격 이펙트
         const attackEffect = this.scene.add.rectangle(
             attackX, attackY,
             50, 50,
@@ -169,7 +257,6 @@ class RoguelikePlayer {
         // 적과의 거리 기반 충돌 체크 (안전한 방식)
         if (this.scene.enemyList && Array.isArray(this.scene.enemyList)) {
             this.scene.enemyList.forEach(enemy => {
-                // null 체크 및 안전성 확인
                 if (!enemy || !enemy.active || !enemy.sprite || !enemy.sprite.active) {
                     return;
                 }
@@ -181,18 +268,17 @@ class RoguelikePlayer {
                     );
 
                     if (distance < this.attackRange) {
-                        // 적에게 피해 (안전하게 함수 호출)
+                        const finalDamage = this.attackPower * this.attackMultiplier;
+
                         if (typeof enemy.takeDamage === 'function') {
-                            enemy.takeDamage(this.attackPower);
+                            enemy.takeDamage(finalDamage);
                         }
 
-                        // 넉백 (안전하게 함수 호출)
                         if (typeof enemy.knockback === 'function' && enemy.sprite.body) {
                             enemy.knockback(direction * 150, -80);
                         }
                     }
                 } catch (error) {
-                    // 에러 발생 시 무시하고 계속 진행
                     if (CONSTANTS.GAME.DEBUG) {
                         console.warn('Attack collision error:', error);
                     }
@@ -249,6 +335,7 @@ class RoguelikePlayer {
     destroy() {
         this.active = false;
 
+        if (this.skullManager) this.skullManager.destroy();
         if (this.hpBarBg) this.hpBarBg.destroy();
         if (this.hpBar) this.hpBar.destroy();
         if (this.hpText) this.hpText.destroy();
