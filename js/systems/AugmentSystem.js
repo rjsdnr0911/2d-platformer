@@ -162,42 +162,87 @@ class AugmentSystem {
         const centerX = camera.worldView.x + camera.width / 2;
         const centerY = camera.worldView.y + camera.height / 2;
 
-        // 화면 오버레이
+        // 화면 오버레이 (그라데이션 효과)
         const overlay = this.scene.add.rectangle(
             centerX,
             centerY,
             camera.width, camera.height,
-            0x000000, 0.9
+            0x000000, 0.92
         );
         overlay.setDepth(900);
         overlay.setScrollFactor(0);
 
+        // 배경 장식 원들 (움직이는 효과)
+        const bgCircles = [];
+        for (let i = 0; i < 20; i++) {
+            const circle = this.scene.add.circle(
+                centerX + (Math.random() - 0.5) * camera.width,
+                centerY + (Math.random() - 0.5) * camera.height,
+                Math.random() * 3 + 1,
+                0xFFFFFF,
+                Math.random() * 0.3 + 0.1
+            );
+            circle.setDepth(900);
+            circle.setScrollFactor(0);
+            bgCircles.push(circle);
+
+            // 반짝이는 애니메이션
+            this.scene.tweens.add({
+                targets: circle,
+                alpha: Math.random() * 0.5,
+                duration: Math.random() * 2000 + 1000,
+                yoyo: true,
+                repeat: -1
+            });
+        }
+
+        // 제목 배경
+        const titleBg = this.scene.add.rectangle(
+            centerX, centerY - 240,
+            500, 70,
+            0x000000, 0.6
+        );
+        titleBg.setDepth(900);
+        titleBg.setScrollFactor(0);
+
         // 제목
         const titleText = this.scene.add.text(
             centerX, centerY - 240,
-            '🎯 증강 선택',
+            '⚡ 증강 선택 ⚡',
             {
                 fontFamily: 'Jua',
-                fontSize: '48px',
+                fontSize: '52px',
                 fill: '#FFD700',
                 fontStyle: 'bold',
-                stroke: '#000000',
-                strokeThickness: 6
+                stroke: '#FF6600',
+                strokeThickness: 8
             }
         );
         titleText.setOrigin(0.5);
         titleText.setDepth(901);
         titleText.setScrollFactor(0);
 
+        // 제목 펄스 애니메이션
+        this.scene.tweens.add({
+            targets: titleText,
+            scale: 1.05,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
         // 직업 표시
         const jobText = this.scene.add.text(
-            centerX, centerY - 190,
-            `현재 직업: ${player.getCurrentAbility()?.name || '없음'}`,
+            centerX, centerY - 180,
+            `⚔️ 현재 직업: ${player.getCurrentAbility()?.name || '없음'}`,
             {
                 fontFamily: 'Jua',
-                fontSize: '22px',
-                fill: '#AAAAAA',
-                fontStyle: 'bold'
+                fontSize: '24px',
+                fill: '#00FFFF',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
             }
         );
         jobText.setOrigin(0.5);
@@ -231,140 +276,323 @@ class AugmentSystem {
         augments.forEach((augment, index) => {
             const cardX = startX + (cardWidth + spacing) * index;
 
-            // 카드 배경
+            // 카드 그림자
+            const cardShadow = this.scene.add.rectangle(
+                cardX + 5, cardY + 5,
+                cardWidth, cardHeight,
+                0x000000, 0.5
+            );
+            cardShadow.setDepth(900);
+            cardShadow.setScrollFactor(0);
+
+            // 카드 발광 효과 (희귀도별)
+            const glowColor = Phaser.Display.Color.HexStringToColor(rarityColors[augment.rarity]).color;
+            const cardGlow = this.scene.add.rectangle(
+                cardX, cardY,
+                cardWidth + 10, cardHeight + 10,
+                glowColor, 0.3
+            );
+            cardGlow.setDepth(900);
+            cardGlow.setScrollFactor(0);
+
+            // 발광 펄스 애니메이션
+            this.scene.tweens.add({
+                targets: cardGlow,
+                alpha: 0.6,
+                duration: 1000,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+
+            // 카드 배경 (그라데이션 효과)
             const cardBg = this.scene.add.rectangle(
                 cardX, cardY,
                 cardWidth, cardHeight,
-                0x1a1a1a
+                0x0a0a0a
             );
-            cardBg.setStrokeStyle(4, Phaser.Display.Color.HexStringToColor(rarityColors[augment.rarity]).color);
+            cardBg.setStrokeStyle(5, glowColor);
             cardBg.setDepth(901);
             cardBg.setScrollFactor(0);
             cardBg.setInteractive();
+
+            // 카드 상단 장식 라인
+            const topLine = this.scene.add.rectangle(
+                cardX, cardY - cardHeight / 2 + 2,
+                cardWidth, 4,
+                glowColor
+            );
+            topLine.setDepth(902);
+            topLine.setScrollFactor(0);
 
             // 직업 태그 (직업 전용인 경우)
             let jobTag = null;
             if (augment.requiredJob) {
                 jobTag = this.scene.add.text(
-                    cardX, cardY - cardHeight / 2 + 20,
-                    `[${augment.requiredJob}]`,
+                    cardX, cardY - cardHeight / 2 + 22,
+                    `✦ ${augment.requiredJob} ✦`,
                     {
                         fontFamily: 'Jua',
                         fontSize: '16px',
                         fill: '#FFFF00',
-                        fontStyle: 'bold'
+                        fontStyle: 'bold',
+                        stroke: '#000000',
+                        strokeThickness: 3
                     }
                 );
                 jobTag.setOrigin(0.5);
-                jobTag.setDepth(902);
+                jobTag.setDepth(903);
                 jobTag.setScrollFactor(0);
+
+                // 반짝이는 효과
+                this.scene.tweens.add({
+                    targets: jobTag,
+                    alpha: 0.7,
+                    duration: 600,
+                    yoyo: true,
+                    repeat: -1
+                });
             }
 
             // 희귀도 표시
+            const rarityBg = this.scene.add.rectangle(
+                cardX, cardY - cardHeight / 2 + (jobTag ? 50 : 35),
+                100, 25,
+                glowColor, 0.3
+            );
+            rarityBg.setDepth(902);
+            rarityBg.setScrollFactor(0);
+
             const rarityText = this.scene.add.text(
-                cardX, cardY - cardHeight / 2 + (jobTag ? 45 : 30),
-                rarityNames[augment.rarity],
+                cardX, cardY - cardHeight / 2 + (jobTag ? 50 : 35),
+                `${rarityNames[augment.rarity]}`,
                 {
                     fontFamily: 'Jua',
                     fontSize: '18px',
                     fill: rarityColors[augment.rarity],
-                    fontStyle: 'bold'
+                    fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4
                 }
             );
             rarityText.setOrigin(0.5);
-            rarityText.setDepth(902);
+            rarityText.setDepth(903);
             rarityText.setScrollFactor(0);
+
+            // 아이콘 배경 원
+            const iconBg = this.scene.add.circle(
+                cardX, cardY - 70,
+                35,
+                glowColor, 0.2
+            );
+            iconBg.setDepth(902);
+            iconBg.setScrollFactor(0);
 
             // 아이콘
             const iconText = this.scene.add.text(
-                cardX, cardY - 80,
+                cardX, cardY - 70,
                 augment.icon || '⭐',
                 {
-                    fontSize: '48px'
+                    fontSize: '54px'
                 }
             );
             iconText.setOrigin(0.5);
-            iconText.setDepth(902);
+            iconText.setDepth(903);
             iconText.setScrollFactor(0);
+
+            // 아이콘 회전 애니메이션 (전설급만)
+            if (augment.rarity === 'legendary') {
+                this.scene.tweens.add({
+                    targets: iconText,
+                    angle: 360,
+                    duration: 3000,
+                    repeat: -1,
+                    ease: 'Linear'
+                });
+            }
 
             // 증강 이름
             const nameText = this.scene.add.text(
-                cardX, cardY - 20,
+                cardX, cardY - 10,
                 augment.name,
                 {
                     fontFamily: 'Jua',
-                    fontSize: '26px',
+                    fontSize: '24px',
                     fill: '#FFFFFF',
                     fontStyle: 'bold',
+                    stroke: '#000000',
+                    strokeThickness: 4,
                     wordWrap: { width: cardWidth - 30 }
                 }
             );
             nameText.setOrigin(0.5);
-            nameText.setDepth(902);
+            nameText.setDepth(903);
             nameText.setScrollFactor(0);
 
             // 증강 설명
             const descText = this.scene.add.text(
-                cardX, cardY + 60,
+                cardX, cardY + 65,
                 augment.description,
                 {
                     fontFamily: 'Jua',
-                    fontSize: '17px',
-                    fill: '#CCCCCC',
+                    fontSize: '16px',
+                    fill: '#DDDDDD',
                     align: 'center',
-                    wordWrap: { width: cardWidth - 40 }
+                    wordWrap: { width: cardWidth - 40 },
+                    lineSpacing: 4
                 }
             );
             descText.setOrigin(0.5);
-            descText.setDepth(902);
+            descText.setDepth(903);
             descText.setScrollFactor(0);
 
-            const elements = [cardBg, rarityText, iconText, nameText, descText];
+            const elements = [cardShadow, cardGlow, cardBg, topLine, rarityBg, rarityText, iconBg, iconText, nameText, descText];
             if (jobTag) elements.push(jobTag);
+
+            // 카드 등장 애니메이션
+            elements.forEach(el => {
+                el.setAlpha(0);
+                el.setScale(0.5);
+            });
+
+            this.scene.tweens.add({
+                targets: elements,
+                alpha: 1,
+                scale: 1,
+                duration: 400,
+                delay: index * 150,
+                ease: 'Back.easeOut'
+            });
 
             // 호버 효과
             cardBg.on('pointerover', () => {
-                cardBg.setFillStyle(0x2a2a2a);
+                cardBg.setFillStyle(0x1a1a1a);
+
+                // 발광 강화
                 this.scene.tweens.add({
-                    targets: elements,
-                    scaleX: 1.08,
-                    scaleY: 1.08,
-                    duration: 150,
+                    targets: cardGlow,
+                    alpha: 0.8,
+                    scaleX: 1.15,
+                    scaleY: 1.15,
+                    duration: 200,
                     ease: 'Power2'
                 });
+
+                // 카드 확대
+                this.scene.tweens.add({
+                    targets: [cardBg, cardShadow, topLine, rarityBg, iconBg],
+                    scaleX: 1.08,
+                    scaleY: 1.08,
+                    duration: 200,
+                    ease: 'Back.easeOut'
+                });
+
+                // 텍스트 강조
+                this.scene.tweens.add({
+                    targets: [nameText, descText, rarityText, iconText, jobTag].filter(t => t),
+                    scaleX: 1.08,
+                    scaleY: 1.08,
+                    duration: 200,
+                    ease: 'Back.easeOut'
+                });
+
+                // 그림자 강화
+                cardShadow.setAlpha(0.7);
             });
 
             cardBg.on('pointerout', () => {
-                cardBg.setFillStyle(0x1a1a1a);
+                cardBg.setFillStyle(0x0a0a0a);
+
+                // 원래 상태로
                 this.scene.tweens.add({
-                    targets: elements,
+                    targets: cardGlow,
+                    alpha: 0.3,
                     scaleX: 1.0,
                     scaleY: 1.0,
-                    duration: 150,
+                    duration: 200,
                     ease: 'Power2'
                 });
+
+                this.scene.tweens.add({
+                    targets: [cardBg, cardShadow, topLine, rarityBg, iconBg, nameText, descText, rarityText, iconText, jobTag].filter(t => t),
+                    scaleX: 1.0,
+                    scaleY: 1.0,
+                    duration: 200,
+                    ease: 'Power2'
+                });
+
+                cardShadow.setAlpha(0.5);
             });
 
             // 클릭 이벤트
             cardBg.on('pointerdown', () => {
-                // 증강 적용
-                this.applyAugment(augment, player);
+                // 선택 효과음 (있다면)
+                // this.scene.sound.play('select');
 
-                // UI 제거
-                cards.forEach(card => {
-                    card.elements.forEach(el => el.destroy());
+                // 선택 애니메이션
+                this.scene.tweens.add({
+                    targets: elements,
+                    scaleX: 1.3,
+                    scaleY: 1.3,
+                    alpha: 0,
+                    duration: 300,
+                    ease: 'Back.easeIn'
                 });
-                overlay.destroy();
-                titleText.destroy();
-                jobText.destroy();
 
-                // 게임 재개
-                this.scene.physics.resume();
+                // 선택된 카드 강조
+                const flashCircle = this.scene.add.circle(
+                    cardX, cardY,
+                    50,
+                    glowColor, 0.8
+                );
+                flashCircle.setDepth(905);
+                flashCircle.setScrollFactor(0);
 
-                // 콜백 실행
-                if (callback) {
-                    callback(augment);
-                }
+                this.scene.tweens.add({
+                    targets: flashCircle,
+                    radius: 200,
+                    alpha: 0,
+                    duration: 500,
+                    ease: 'Power2',
+                    onComplete: () => flashCircle.destroy()
+                });
+
+                // 다른 카드들 페이드아웃
+                cards.forEach((card, i) => {
+                    if (i !== index) {
+                        this.scene.tweens.add({
+                            targets: card.elements,
+                            alpha: 0,
+                            duration: 300
+                        });
+                    }
+                });
+
+                // 0.4초 후 적용
+                this.scene.time.delayedCall(400, () => {
+                    // 증강 적용
+                    this.applyAugment(augment, player);
+
+                    // UI 제거
+                    cards.forEach(card => {
+                        card.elements.forEach(el => {
+                            if (el && el.destroy) el.destroy();
+                        });
+                    });
+                    overlay.destroy();
+                    titleText.destroy();
+                    titleBg.destroy();
+                    jobText.destroy();
+                    bgCircles.forEach(c => c.destroy());
+
+                    // 게임 재개
+                    this.scene.physics.resume();
+
+                    // 콜백 실행
+                    if (callback) {
+                        callback(augment);
+                    }
+                });
             });
 
             cards.push({
