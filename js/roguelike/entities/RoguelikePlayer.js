@@ -1,113 +1,75 @@
-// 로그라이크 모드 전용 플레이어 클래스
+// 로그라이크 모드 전용 플레이어 클래스 (안정성 우선 재구현)
 class RoguelikePlayer {
     constructor(scene, x, y) {
         this.scene = scene;
         this.active = true;
 
-        // 플레이어 스프라이트 생성 (원형)
-        this.sprite = scene.add.circle(x, y, 20, 0x00AAFF);
-        scene.physics.add.existing(this.sprite);
+        // 플레이어 스프라이트 생성 (physics.add.sprite 사용)
+        this.sprite = scene.physics.add.sprite(x, y, null);
+
+        // 원형으로 그리기 (간단한 시각화)
+        const graphics = scene.add.graphics();
+        graphics.fillStyle(0x00AAFF, 1);
+        graphics.fillCircle(0, 0, 20);
+        graphics.generateTexture('player_circle', 40, 40);
+        graphics.destroy();
+
+        this.sprite.setTexture('player_circle');
+        this.sprite.setDisplaySize(40, 40);
 
         // 물리 설정
-        this.sprite.body.setCollideWorldBounds(true);
-        this.sprite.body.setMaxVelocity(300, 1000);
-
-        // 충돌 박스 조정 (원형의 중심 기준)
-        this.sprite.body.setCircle(20);
-
-        // 위치 프로퍼티 포워딩
-        Object.defineProperties(this, {
-            x: {
-                get() { return this.sprite.x; },
-                set(value) { this.sprite.x = value; }
-            },
-            y: {
-                get() { return this.sprite.y; },
-                set(value) { this.sprite.y = value; }
-            },
-            body: {
-                get() { return this.sprite.body; }
-            },
-            flipX: {
-                get() { return this.sprite.flipX; },
-                set(value) { this.sprite.flipX = value; }
-            }
-        });
+        this.sprite.setCollideWorldBounds(true);
+        this.sprite.setMaxVelocity(300, 1000);
+        this.sprite.body.setSize(30, 30);
 
         // 기본 스탯
-        this.maxHealth = 50;
-        this.health = 50;
+        this.maxHealth = 100;
+        this.health = 100;
         this.moveSpeed = 200;
         this.jumpVelocity = -400;
-        this.attackMultiplier = 1.0;
-        this.defense = 0;
-
-        // 시스템
-        this.skullManager = new SkullManager(this);
-        this.inventoryManager = new InventoryManager(this);
+        this.attackPower = 10;
+        this.attackRange = 60;
 
         // 상태
         this.isInvincible = false;
-        this.isInvisible = false;
-        this.isDashing = false;
-        this.lastDashTime = 0;
-        this.dashCooldown = 1000;
-
-        // 공격 상태
-        this.lastAttackTime = 0;
+        this.canAttack = true;
         this.attackCooldown = 300;
-
-        // 점프
-        this.canDoubleJump = false;
-        this.hasDoubleJumped = false;
 
         // 입력
         this.keys = scene.input.keyboard.addKeys({
             left: Phaser.Input.Keyboard.KeyCodes.LEFT,
             right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
             up: Phaser.Input.Keyboard.KeyCodes.UP,
-            down: Phaser.Input.Keyboard.KeyCodes.DOWN,
-            z: Phaser.Input.Keyboard.KeyCodes.Z,      // 기본 공격
-            x: Phaser.Input.Keyboard.KeyCodes.X,      // 스킬 1
-            c: Phaser.Input.Keyboard.KeyCodes.C,      // 스킬 2
-            space: Phaser.Input.Keyboard.KeyCodes.SPACE,  // 스컬 교체
-            shift: Phaser.Input.Keyboard.KeyCodes.SHIFT,  // 대시
-            v: Phaser.Input.Keyboard.KeyCodes.V,      // 액티브 아이템
-            i: Phaser.Input.Keyboard.KeyCodes.I       // 인벤토리
+            z: Phaser.Input.Keyboard.KeyCodes.Z  // 기본 공격
         });
 
-        // 효과 배열
-        this.onAttackEffects = [];
-        this.onHitEffects = [];
-        this.passiveEffects = [];
-
         // HP UI 생성
-        this.createHealthUI(scene);
+        this.createHealthUI();
 
         if (CONSTANTS.GAME.DEBUG) {
-            console.log('RoguelikePlayer created');
+            console.log('RoguelikePlayer created (simplified)');
         }
     }
 
     // HP UI 생성
-    createHealthUI(scene) {
+    createHealthUI() {
         const uiX = 20;
         const uiY = 20;
 
         // HP 바 배경
-        this.hpBarBg = scene.add.rectangle(uiX, uiY, 200, 20, 0x333333);
+        this.hpBarBg = this.scene.add.rectangle(uiX, uiY, 200, 20, 0x333333);
         this.hpBarBg.setOrigin(0, 0);
         this.hpBarBg.setScrollFactor(0);
         this.hpBarBg.setDepth(100);
 
         // HP 바
-        this.hpBar = scene.add.rectangle(uiX + 2, uiY + 2, 196, 16, 0x00FF00);
+        this.hpBar = this.scene.add.rectangle(uiX + 2, uiY + 2, 196, 16, 0x00FF00);
         this.hpBar.setOrigin(0, 0);
         this.hpBar.setScrollFactor(0);
         this.hpBar.setDepth(101);
 
         // HP 텍스트
-        this.hpText = scene.add.text(uiX + 100, uiY + 10, '', {
+        this.hpText = this.scene.add.text(uiX + 100, uiY + 10, '', {
             fontFamily: 'Jua',
             fontSize: '14px',
             fill: '#fff',
@@ -141,220 +103,117 @@ class RoguelikePlayer {
 
     // 업데이트
     update(time, delta) {
+        if (!this.active || !this.sprite || !this.sprite.body) return;
+
         this.handleMovement();
         this.handleJump();
         this.handleAttack(time);
-        this.handleSkills(time);
-        this.handleDash(time);
-        this.handleSkullSwap();
-        this.handleActiveItem();
-
-        // 시스템 업데이트
-        this.skullManager.update(time, delta);
-        this.inventoryManager.update(time, delta);
-
-        // UI 업데이트
         this.updateHealthUI();
-
-        // 착지 시 더블 점프 리셋
-        if (this.body.touching.down) {
-            this.hasDoubleJumped = false;
-        }
     }
 
     // 이동
     handleMovement() {
         if (this.keys.left.isDown) {
-            this.sprite.body.setVelocityX(-this.moveSpeed);
-            this.flipX = true;
+            this.sprite.setVelocityX(-this.moveSpeed);
+            this.sprite.flipX = true;
         } else if (this.keys.right.isDown) {
-            this.sprite.body.setVelocityX(this.moveSpeed);
-            this.flipX = false;
+            this.sprite.setVelocityX(this.moveSpeed);
+            this.sprite.flipX = false;
         } else {
-            this.sprite.body.setVelocityX(0);
+            this.sprite.setVelocityX(0);
         }
     }
 
     // 점프
     handleJump() {
         if (Phaser.Input.Keyboard.JustDown(this.keys.up)) {
-            if (this.body.touching.down) {
-                // 일반 점프
-                this.sprite.body.setVelocityY(this.jumpVelocity);
-            } else if (this.canDoubleJump && !this.hasDoubleJumped) {
-                // 더블 점프
-                this.sprite.body.setVelocityY(this.jumpVelocity * 0.9);
-                this.hasDoubleJumped = true;
+            if (this.sprite.body.touching.down) {
+                this.sprite.setVelocityY(this.jumpVelocity);
             }
         }
     }
 
-    // 공격
+    // 공격 (거리 기반만 사용)
     handleAttack(time) {
-        if (Phaser.Input.Keyboard.JustDown(this.keys.z)) {
-            if (time - this.lastAttackTime >= this.attackCooldown) {
-                this.performBasicAttack();
-                this.lastAttackTime = time;
-            }
+        if (Phaser.Input.Keyboard.JustDown(this.keys.z) && this.canAttack) {
+            this.performAttack();
+
+            // 공격 쿨다운
+            this.canAttack = false;
+            this.scene.time.delayedCall(this.attackCooldown, () => {
+                this.canAttack = true;
+            });
         }
     }
 
-    // 기본 공격 실행
-    performBasicAttack() {
-        const currentSkull = this.skullManager.getCurrentSkull();
-        if (currentSkull && currentSkull.basicAttack) {
-            currentSkull.basicAttack.call(this);
+    // 공격 실행
+    performAttack() {
+        const direction = this.sprite.flipX ? -1 : 1;
+        const attackX = this.sprite.x + direction * 40;
+        const attackY = this.sprite.y;
 
-            // onAttack 효과 발동
-            if (this.onAttackEffects && this.onAttackEffects.length > 0) {
-                this.onAttackEffects.forEach(effect => {
-                    if (typeof effect === 'function') {
-                        effect(this, null);
-                    }
-                });
-            }
-        } else {
-            // 기본 공격 (스컬 없을 때)
-            this.defaultBasicAttack();
-        }
-    }
-
-    // 기본 공격 (스컬 없을 때)
-    defaultBasicAttack() {
-        const direction = this.flipX ? -1 : 1;
-
-        const hitboxX = this.x + direction * 40;
-        const hitboxY = this.y;
-
-        // 시각적 히트박스 (디버그용)
-        const hitbox = this.scene.add.rectangle(
-            hitboxX,
-            hitboxY,
+        // 공격 이펙트 (시각적 피드백)
+        const attackEffect = this.scene.add.rectangle(
+            attackX, attackY,
             50, 50,
-            0xFFFFFF, 0.3
+            0xFFFFFF, 0.5
         );
 
-        // 적과 충돌 체크 (거리 기반)
-        if (this.scene.enemyList) {
+        this.scene.tweens.add({
+            targets: attackEffect,
+            alpha: 0,
+            duration: 150,
+            onComplete: () => attackEffect.destroy()
+        });
+
+        // 적과의 거리 기반 충돌 체크 (안전한 방식)
+        if (this.scene.enemyList && Array.isArray(this.scene.enemyList)) {
             this.scene.enemyList.forEach(enemy => {
-                if (enemy && enemy.active && enemy.sprite) {
+                // null 체크 및 안전성 확인
+                if (!enemy || !enemy.active || !enemy.sprite || !enemy.sprite.active) {
+                    return;
+                }
+
+                try {
                     const distance = Phaser.Math.Distance.Between(
-                        hitboxX, hitboxY,
+                        attackX, attackY,
                         enemy.sprite.x, enemy.sprite.y
                     );
 
-                    // 히트박스 범위 내에 있으면 피격
-                    if (distance < 50) {
-                        const damage = 10 * this.attackMultiplier;
-                        enemy.takeDamage(damage);
+                    if (distance < this.attackRange) {
+                        // 적에게 피해 (안전하게 함수 호출)
+                        if (typeof enemy.takeDamage === 'function') {
+                            enemy.takeDamage(this.attackPower);
+                        }
 
-                        // 넉백
-                        if (enemy.sprite && enemy.sprite.body) {
+                        // 넉백 (안전하게 함수 호출)
+                        if (typeof enemy.knockback === 'function' && enemy.sprite.body) {
                             enemy.knockback(direction * 150, -80);
                         }
                     }
+                } catch (error) {
+                    // 에러 발생 시 무시하고 계속 진행
+                    if (CONSTANTS.GAME.DEBUG) {
+                        console.warn('Attack collision error:', error);
+                    }
                 }
             });
-        }
-
-        this.scene.time.delayedCall(100, () => {
-            if (hitbox && hitbox.active) {
-                hitbox.destroy();
-            }
-        });
-    }
-
-    // 스킬 사용
-    handleSkills(time) {
-        const currentSkull = this.skullManager.getCurrentSkull();
-        if (!currentSkull) return;
-
-        // 스킬 1 (X키)
-        if (Phaser.Input.Keyboard.JustDown(this.keys.x)) {
-            if (currentSkull.skill1 && currentSkull.skill1.effect) {
-                const cooldown = currentSkull.skill1.cooldown || 3000;
-                if (!this.lastSkill1Time || time - this.lastSkill1Time >= cooldown) {
-                    currentSkull.skill1.effect(this);
-                    this.lastSkill1Time = time;
-                }
-            }
-        }
-
-        // 스킬 2 (C키)
-        if (Phaser.Input.Keyboard.JustDown(this.keys.c)) {
-            if (currentSkull.skill2 && currentSkull.skill2.effect) {
-                const cooldown = currentSkull.skill2.cooldown || 8000;
-                if (!this.lastSkill2Time || time - this.lastSkill2Time >= cooldown) {
-                    currentSkull.skill2.effect(this);
-                    this.lastSkill2Time = time;
-                }
-            }
-        }
-    }
-
-    // 대시
-    handleDash(time) {
-        if (Phaser.Input.Keyboard.JustDown(this.keys.shift)) {
-            if (time - this.lastDashTime >= this.dashCooldown) {
-                const direction = this.flipX ? -1 : 1;
-
-                this.sprite.body.setVelocityX(direction * 400);
-                this.isDashing = true;
-
-                // onDash 효과 발동
-                if (this.onDashEffects) {
-                    this.onDashEffects.forEach(effect => {
-                        if (typeof effect === 'function') {
-                            effect(this);
-                        }
-                    });
-                }
-
-                this.scene.time.delayedCall(200, () => {
-                    this.isDashing = false;
-                });
-
-                this.lastDashTime = time;
-            }
-        }
-    }
-
-    // 스컬 교체
-    handleSkullSwap() {
-        if (Phaser.Input.Keyboard.JustDown(this.keys.space)) {
-            this.skullManager.swap();
-        }
-    }
-
-    // 액티브 아이템 사용
-    handleActiveItem() {
-        if (Phaser.Input.Keyboard.JustDown(this.keys.v)) {
-            this.inventoryManager.useActiveItem(0);
         }
     }
 
     // 피해 받기
     takeDamage(amount) {
-        if (this.isInvincible) return;
+        if (!this.active || this.isInvincible) return;
 
-        // 방어력 적용
-        const actualDamage = amount * (1 - this.defense);
-        this.health = Math.max(0, this.health - actualDamage);
+        this.health = Math.max(0, this.health - amount);
 
         // 피격 효과
         this.sprite.setTint(0xFF0000);
         this.scene.time.delayedCall(100, () => {
-            this.sprite.clearTint();
+            if (this.sprite && this.sprite.active) {
+                this.sprite.clearTint();
+            }
         });
-
-        // onHit 효과 발동
-        if (this.onHitEffects && this.onHitEffects.length > 0) {
-            this.onHitEffects.forEach(effect => {
-                if (typeof effect === 'function') {
-                    effect(this, null);
-                }
-            });
-        }
 
         // 무적 시간
         this.isInvincible = true;
@@ -372,62 +231,27 @@ class RoguelikePlayer {
 
     // 죽음
     die() {
+        if (!this.active) return;
+
+        this.active = false;
+
         if (CONSTANTS.GAME.DEBUG) {
             console.log('Player died');
         }
 
         // 게임 오버 처리
-        if (this.scene.onPlayerDeath) {
-            this.scene.onPlayerDeath();
+        if (this.scene.handleGameOver && typeof this.scene.handleGameOver === 'function') {
+            this.scene.handleGameOver();
         }
-    }
-
-    // 기본 근접 콤보 (스컬용 헬퍼)
-    performMeleeCombo() {
-        this.defaultBasicAttack();
-    }
-
-    // 헬퍼 메서드들 (스컬에서 사용)
-    setVelocityX(value) {
-        this.sprite.body.setVelocityX(value);
-    }
-
-    setVelocityY(value) {
-        this.sprite.body.setVelocityY(value);
-    }
-
-    setVelocity(x, y) {
-        this.sprite.body.setVelocity(x, y);
-    }
-
-    setTint(color) {
-        this.sprite.setTint(color);
-    }
-
-    clearTint() {
-        this.sprite.clearTint();
-    }
-
-    setAlpha(value) {
-        this.sprite.setAlpha(value);
     }
 
     // 정리
     destroy() {
         this.active = false;
 
-        if (this.skullManager) {
-            this.skullManager.destroy();
-        }
-
-        if (this.inventoryManager) {
-            this.inventoryManager.destroy();
-        }
-
         if (this.hpBarBg) this.hpBarBg.destroy();
         if (this.hpBar) this.hpBar.destroy();
         if (this.hpText) this.hpText.destroy();
-
         if (this.sprite) this.sprite.destroy();
     }
 }

@@ -5,34 +5,21 @@ class RoguelikeGameScene extends Phaser.Scene {
     }
 
     init(data) {
-        // 시작 스컬 (선택된 경우)
-        this.startingSkull = data.skull || null;
+        // 시작 데이터 (사용 안 함 - 간소화)
     }
 
     create() {
         // 배경
         this.cameras.main.setBackgroundColor('#1a0033');
 
-        // 방 생성기
-        this.roomGenerator = new RoomGenerator(this);
+        // 플레이어 생성 (간소화)
+        this.player = new RoguelikePlayer(this, 100, 500);
 
-        // 플레이어 생성
-        this.player = new RoguelikePlayer(this, 100, 600);
+        // 간단한 플랫폼 생성
+        this.platforms = this.createPlatforms();
 
-        // 시작 스컬 장착
-        if (this.startingSkull) {
-            this.player.skullManager.equipSkull(this.startingSkull, 0);
-        } else {
-            // 기본 스컬 (전사) 장착
-            const warriorSkull = new WarriorSkull();
-            this.player.skullManager.equipSkull(warriorSkull, 0);
-        }
-
-        // 첫 방 생성
-        this.roomGenerator.generateRoom(1);
-
-        // 적 리스트 참조 (RoguelikeEnemy가 사용)
-        this.enemyList = this.roomGenerator.enemies;
+        // 간단한 적 생성 (테스트용)
+        this.enemyList = this.createEnemies();
 
         // 충돌 설정
         this.setupCollisions();
@@ -41,31 +28,89 @@ class RoguelikeGameScene extends Phaser.Scene {
         this.createUI();
 
         // 카메라 설정
-        this.cameras.main.setBounds(0, 0, this.roomGenerator.roomWidth, this.roomGenerator.roomHeight);
+        this.cameras.main.setBounds(0, 0, 1200, 700);
         this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
 
         // 물리 월드 설정
-        this.physics.world.setBounds(0, 0, this.roomGenerator.roomWidth, this.roomGenerator.roomHeight);
+        this.physics.world.setBounds(0, 0, 1200, 700);
 
-        // ESC 키로 일시정지
+        // ESC 키로 메인 메뉴
         this.input.keyboard.on('keydown-ESC', () => {
-            this.scene.pause();
-            this.scene.launch('PauseMenuScene');
+            this.scene.start('RoguelikeMenuScene');
         });
     }
 
-    // 충돌 설정
+    // 플랫폼 생성 (간단한 맵)
+    createPlatforms() {
+        const platforms = this.physics.add.staticGroup();
+
+        // 바닥
+        platforms.create(600, 680, null).setDisplaySize(1200, 40).refreshBody();
+        const floorGraphics = this.add.graphics();
+        floorGraphics.fillStyle(0x666666, 1);
+        floorGraphics.fillRect(0, 660, 1200, 40);
+
+        // 중간 플랫폼들
+        const platformConfigs = [
+            { x: 200, y: 550, w: 150, h: 20 },
+            { x: 450, y: 450, w: 150, h: 20 },
+            { x: 700, y: 550, w: 150, h: 20 },
+            { x: 950, y: 450, w: 150, h: 20 }
+        ];
+
+        platformConfigs.forEach(config => {
+            platforms.create(config.x, config.y, null).setDisplaySize(config.w, config.h).refreshBody();
+
+            const graphics = this.add.graphics();
+            graphics.fillStyle(0x888888, 1);
+            graphics.fillRect(config.x - config.w / 2, config.y - config.h / 2, config.w, config.h);
+        });
+
+        return platforms;
+    }
+
+    // 적 생성 (간단한 테스트용)
+    createEnemies() {
+        const enemies = [];
+
+        // 몇 개의 기본 적 생성
+        enemies.push(new RoguelikeEnemy(this, 300, 500, {
+            name: '슬라임',
+            hp: 30,
+            damage: 5,
+            speed: 80,
+            color: 0xFF4444
+        }));
+
+        enemies.push(new RoguelikeEnemy(this, 600, 400, {
+            name: '고블린',
+            hp: 40,
+            damage: 8,
+            speed: 100,
+            color: 0x44FF44
+        }));
+
+        enemies.push(new RoguelikeEnemy(this, 900, 400, {
+            name: '오크',
+            hp: 50,
+            damage: 10,
+            speed: 60,
+            color: 0x4444FF
+        }));
+
+        return enemies;
+    }
+
+    // 충돌 설정 (간소화)
     setupCollisions() {
         // 플레이어 vs 플랫폼
-        this.roomGenerator.platforms.forEach(platform => {
-            this.physics.add.collider(this.player.sprite, platform);
-        });
+        this.physics.add.collider(this.player.sprite, this.platforms);
 
         // 적 vs 플랫폼
         this.enemyList.forEach(enemy => {
-            this.roomGenerator.platforms.forEach(platform => {
-                this.physics.add.collider(enemy.sprite, platform);
-            });
+            if (enemy && enemy.sprite) {
+                this.physics.add.collider(enemy.sprite, this.platforms);
+            }
         });
     }
 
@@ -76,20 +121,12 @@ class RoguelikeGameScene extends Phaser.Scene {
         }
 
         // 적 업데이트
-        this.enemyList.forEach(enemy => {
-            if (enemy.active) {
-                enemy.update(time, delta);
-            }
-        });
-
-        // 적 전멸 확인 (전투방)
-        if (this.roomGenerator.currentRoomType === 'combat') {
-            if (this.roomGenerator.areAllEnemiesDead() && !this.combatCleared) {
-                this.combatCleared = true;
-                this.roomGenerator.onCombatClear();
-            }
-        } else {
-            this.combatCleared = false;
+        if (this.enemyList && Array.isArray(this.enemyList)) {
+            this.enemyList.forEach(enemy => {
+                if (enemy && enemy.active) {
+                    enemy.update(time, delta);
+                }
+            });
         }
 
         // 플레이어 사망 체크
@@ -98,40 +135,53 @@ class RoguelikeGameScene extends Phaser.Scene {
             this.handleGameOver();
         }
 
-        // UI 업데이트
-        this.updateUI();
-
-        // 새로운 충돌 설정 (적이나 플랫폼이 추가되었을 때)
-        this.updateCollisions();
+        // 적 전멸 체크
+        if (!this.allEnemiesDead && this.areAllEnemiesDead()) {
+            this.allEnemiesDead = true;
+            this.showVictoryMessage();
+        }
     }
 
-    // 충돌 업데이트 (동적으로 생성된 오브젝트)
-    updateCollisions() {
-        // 새로 생성된 플랫폼과 플레이어 충돌
-        this.roomGenerator.platforms.forEach(platform => {
-            if (platform.body && !platform.hasPlayerCollider) {
-                this.physics.add.collider(this.player.sprite, platform);
-                platform.hasPlayerCollider = true;
-            }
-        });
+    // 모든 적이 죽었는지 확인
+    areAllEnemiesDead() {
+        if (!this.enemyList || !Array.isArray(this.enemyList)) return false;
 
-        // 새로 생성된 적 충돌
-        this.enemyList.forEach(enemy => {
-            if (enemy.sprite && enemy.sprite.body && !enemy.hasColliders) {
-                this.roomGenerator.platforms.forEach(platform => {
-                    this.physics.add.collider(enemy.sprite, platform);
-                });
-                enemy.hasColliders = true;
+        return this.enemyList.every(enemy => !enemy || !enemy.active || enemy.health <= 0);
+    }
+
+    // 승리 메시지
+    showVictoryMessage() {
+        const victoryText = this.add.text(
+            600, 200,
+            '모든 적 처치 완료!',
+            {
+                fontFamily: 'Jua',
+                fontSize: '48px',
+                fill: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 4
             }
+        );
+        victoryText.setOrigin(0.5);
+        victoryText.setScrollFactor(0);
+        victoryText.setDepth(1000);
+
+        this.tweens.add({
+            targets: victoryText,
+            alpha: 0,
+            duration: 3000,
+            delay: 2000,
+            onComplete: () => victoryText.destroy()
         });
     }
 
     // UI 생성
     createUI() {
-        // 층수 표시
-        this.floorText = this.add.text(
+        // 타이틀 표시
+        this.titleText = this.add.text(
             20, 20,
-            `FLOOR ${this.roomGenerator.currentFloor}`,
+            'ROGUELIKE TEST',
             {
                 fontFamily: 'Orbitron',
                 fontSize: '28px',
@@ -141,93 +191,54 @@ class RoguelikeGameScene extends Phaser.Scene {
                 strokeThickness: 3
             }
         );
-        this.floorText.setScrollFactor(0);
-        this.floorText.setDepth(1000);
+        this.titleText.setScrollFactor(0);
+        this.titleText.setDepth(1000);
 
-        // 방 타입 표시
-        this.roomTypeText = this.add.text(
-            20, 55,
-            '',
+        // 조작법 안내
+        const controlsText = this.add.text(
+            600, 50,
+            '방향키: 이동 | UP: 점프 | Z: 공격 | ESC: 메뉴',
             {
                 fontFamily: 'Jua',
-                fontSize: '20px',
-                fill: '#AAAAAA'
+                fontSize: '18px',
+                fill: '#FFFFFF',
+                backgroundColor: '#000000',
+                padding: { x: 10, y: 5 }
             }
         );
-        this.roomTypeText.setScrollFactor(0);
-        this.roomTypeText.setDepth(1000);
+        controlsText.setOrigin(0.5);
+        controlsText.setScrollFactor(0);
+        controlsText.setDepth(1000);
 
-        // 조작법 안내 (처음에만)
-        if (this.roomGenerator.currentFloor === 1) {
-            const controlsText = this.add.text(
-                this.roomGenerator.roomWidth / 2,
-                100,
-                '방향키: 이동 | SPACE: 스컬 교체 | Z: 공격 | X/C: 스킬 | V: 액티브 아이템 | I: 인벤토리',
-                {
-                    fontFamily: 'Jua',
-                    fontSize: '18px',
-                    fill: '#FFFFFF',
-                    backgroundColor: '#000000',
-                    padding: { x: 10, y: 5 }
+        // 5초 후 사라짐
+        this.time.delayedCall(5000, () => {
+            this.tweens.add({
+                targets: controlsText,
+                alpha: 0,
+                duration: 1000,
+                onComplete: () => {
+                    if (controlsText && controlsText.active) {
+                        controlsText.destroy();
+                    }
                 }
-            );
-            controlsText.setOrigin(0.5);
-
-            // 5초 후 사라짐
-            this.time.delayedCall(5000, () => {
-                this.tweens.add({
-                    targets: controlsText,
-                    alpha: 0,
-                    duration: 1000,
-                    onComplete: () => controlsText.destroy()
-                });
             });
-        }
-    }
-
-    // UI 업데이트
-    updateUI() {
-        // 층수 업데이트
-        if (this.floorText) {
-            this.floorText.setText(`FLOOR ${this.roomGenerator.currentFloor}`);
-        }
-
-        // 방 타입 업데이트
-        if (this.roomTypeText) {
-            const typeNames = {
-                combat: '전투',
-                boss: '보스',
-                treasure: '보물',
-                shop: '상점',
-                rest: '휴식'
-            };
-            const typeName = typeNames[this.roomGenerator.currentRoomType] || '';
-            const enemyCount = this.enemyList.filter(e => e.active && e.health > 0).length;
-
-            if (this.roomGenerator.currentRoomType === 'combat' || this.roomGenerator.currentRoomType === 'boss') {
-                this.roomTypeText.setText(`${typeName} - 적: ${enemyCount}`);
-            } else {
-                this.roomTypeText.setText(typeName);
-            }
-        }
+        });
     }
 
     // 게임 오버 처리
     handleGameOver() {
         // 화면 어둡게
         const overlay = this.add.rectangle(
-            this.cameras.main.scrollX + this.roomGenerator.roomWidth / 2,
-            this.cameras.main.scrollY + this.roomGenerator.roomHeight / 2,
-            this.roomGenerator.roomWidth,
-            this.roomGenerator.roomHeight,
+            600, 350,
+            1200, 700,
             0x000000, 0.7
         );
+        overlay.setScrollFactor(0);
         overlay.setDepth(999);
 
         // 게임 오버 텍스트
         const gameOverText = this.add.text(
-            this.cameras.main.scrollX + this.roomGenerator.roomWidth / 2,
-            this.cameras.main.scrollY + this.roomGenerator.roomHeight / 2 - 100,
+            600, 250,
             'GAME OVER',
             {
                 fontFamily: 'Orbitron',
@@ -239,36 +250,22 @@ class RoguelikeGameScene extends Phaser.Scene {
             }
         );
         gameOverText.setOrigin(0.5);
+        gameOverText.setScrollFactor(0);
         gameOverText.setDepth(1000);
-
-        // 도달 층수
-        const floorReachedText = this.add.text(
-            this.cameras.main.scrollX + this.roomGenerator.roomWidth / 2,
-            this.cameras.main.scrollY + this.roomGenerator.roomHeight / 2,
-            `도달 층수: ${this.roomGenerator.currentFloor}`,
-            {
-                fontFamily: 'Jua',
-                fontSize: '32px',
-                fill: '#FFFFFF'
-            }
-        );
-        floorReachedText.setOrigin(0.5);
-        floorReachedText.setDepth(1000);
 
         // 재시작 버튼
         const retryButton = this.add.rectangle(
-            this.cameras.main.scrollX + this.roomGenerator.roomWidth / 2 - 120,
-            this.cameras.main.scrollY + this.roomGenerator.roomHeight / 2 + 100,
+            480, 450,
             200, 60,
             0x4444FF
         );
         retryButton.setStrokeStyle(3, 0xFFFFFF);
         retryButton.setInteractive();
+        retryButton.setScrollFactor(0);
         retryButton.setDepth(1000);
 
         const retryText = this.add.text(
-            retryButton.x,
-            retryButton.y,
+            480, 450,
             '재시작',
             {
                 fontFamily: 'Jua',
@@ -277,6 +274,7 @@ class RoguelikeGameScene extends Phaser.Scene {
             }
         );
         retryText.setOrigin(0.5);
+        retryText.setScrollFactor(0);
         retryText.setDepth(1000);
 
         retryButton.on('pointerdown', () => {
@@ -293,18 +291,17 @@ class RoguelikeGameScene extends Phaser.Scene {
 
         // 메뉴로 버튼
         const menuButton = this.add.rectangle(
-            this.cameras.main.scrollX + this.roomGenerator.roomWidth / 2 + 120,
-            this.cameras.main.scrollY + this.roomGenerator.roomHeight / 2 + 100,
+            720, 450,
             200, 60,
             0xFF4444
         );
         menuButton.setStrokeStyle(3, 0xFFFFFF);
         menuButton.setInteractive();
+        menuButton.setScrollFactor(0);
         menuButton.setDepth(1000);
 
         const menuText = this.add.text(
-            menuButton.x,
-            menuButton.y,
+            720, 450,
             '메뉴로',
             {
                 fontFamily: 'Jua',
@@ -313,6 +310,7 @@ class RoguelikeGameScene extends Phaser.Scene {
             }
         );
         menuText.setOrigin(0.5);
+        menuText.setScrollFactor(0);
         menuText.setDepth(1000);
 
         menuButton.on('pointerdown', () => {
