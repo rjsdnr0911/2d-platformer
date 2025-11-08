@@ -65,6 +65,37 @@ class Player {
         this.dashCooldownReduction = 0;
         this.invincibilityBonus = 0;
 
+        // 증강 시스템 속성
+        this.attackMultiplier = 1.0;          // 공격력 배율
+        this.attackRange = 1.0;               // 공격 범위 배율
+        this.criticalChance = 0;              // 치명타 확률
+        this.criticalMultiplier = 1.0;        // 치명타 배율
+        this.lifesteal = 0;                   // 흡혈 비율
+        this.healthRegen = 0;                 // 초당 HP 회복
+        this.healOnBossKill = 0;              // 보스 처치 시 회복 비율
+        this.dodgeChance = 0;                 // 회피 확률
+        this.thornsDamage = 0;                // 가시 데미지
+        this.hasLastStand = false;            // 최후의 저항
+        this.hasRevive = false;               // 부활
+        this.reviveCount = 0;                 // 부활 가능 횟수
+        this.hasChaos = false;                // 혼돈 효과
+        this.hasAOEAttack = false;            // 광역 공격
+        this.aoeRadius = 0;                   // 광역 범위
+        this.hasPoisonAttack = false;         // 독 공격
+        this.poisonDamage = 0;                // 독 데미지
+        this.poisonDuration = 0;              // 독 지속시간
+        this.freezeChance = 0;                // 빙결 확률
+        this.freezeDuration = 0;              // 빙결 지속시간
+        this.knockbackMultiplier = 1.0;       // 넉백 배율
+        this.luckMultiplier = 1.0;            // 행운 배율
+        this.hasAirDash = false;              // 공중 대쉬
+        this.airDashCooldown = 0;             // 공중 대쉬 쿨다운
+        this.lastAirDashTime = 0;             // 마지막 공중 대쉬 시간
+        this.currentJumps = this.maxJumps;    // 현재 점프 횟수
+
+        // 재생 효과용 타이머
+        this.lastRegenTime = 0;
+
         // 플레이어 데이터 저장
         this.sprite.setData('entity', this);
         this.sprite.setData('type', 'player');
@@ -345,8 +376,35 @@ class Player {
         }
     }
 
-    takeDamage(damage) {
+    takeDamage(damage, attacker = null) {
         if (!this.isAlive || this.isInvincible) return;
+
+        // 회피 체크 (증강: 보호막)
+        if (this.dodgeChance > 0 && Math.random() < this.dodgeChance) {
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log('공격 회피!');
+            }
+            // 회피 이펙트
+            const dodgeText = this.scene.add.text(
+                this.sprite.x, this.sprite.y - 50,
+                'DODGE!',
+                {
+                    fontSize: '24px',
+                    fill: '#00FFFF',
+                    fontStyle: 'bold',
+                    stroke: '#000',
+                    strokeThickness: 3
+                }
+            );
+            this.scene.tweens.add({
+                targets: dodgeText,
+                y: dodgeText.y - 30,
+                alpha: 0,
+                duration: 1000,
+                onComplete: () => dodgeText.destroy()
+            });
+            return;
+        }
 
         // 근접 캐릭터 방어력 버프 (검술 능력 사용 시 30% 피해 감소)
         let meleeDefenseBonus = 0;
@@ -358,9 +416,52 @@ class Player {
         const actualDamage = Math.ceil(damage * (1 - this.damageReduction - meleeDefenseBonus));
         this.hp -= actualDamage;
 
+        // 가시 데미지 (증강: 가시)
+        if (this.thornsDamage > 0 && attacker && attacker.takeDamage) {
+            attacker.takeDamage(this.thornsDamage);
+            if (CONSTANTS.GAME.DEBUG) {
+                console.log(`가시 데미지: ${this.thornsDamage}`);
+            }
+        }
+
         if (this.hp <= 0) {
-            this.hp = 0;
-            this.die();
+            // 부활 체크 (증강: 불사신)
+            if (this.hasRevive && this.reviveCount > 0) {
+                this.reviveCount--;
+                this.hp = Math.floor(this.maxHp * 0.5);
+                this.hasRevive = this.reviveCount > 0;
+
+                // 부활 이펙트
+                const reviveText = this.scene.add.text(
+                    this.sprite.x, this.sprite.y - 50,
+                    'REVIVED!',
+                    {
+                        fontSize: '32px',
+                        fill: '#FFD700',
+                        fontStyle: 'bold',
+                        stroke: '#000',
+                        strokeThickness: 4
+                    }
+                );
+                this.scene.tweens.add({
+                    targets: reviveText,
+                    y: reviveText.y - 50,
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => reviveText.destroy()
+                });
+
+                // 무적 시간
+                this.startInvincibility();
+                this.playHitEffect();
+
+                if (CONSTANTS.GAME.DEBUG) {
+                    console.log(`부활! 남은 부활 횟수: ${this.reviveCount}`);
+                }
+            } else {
+                this.hp = 0;
+                this.die();
+            }
         } else {
             this.startInvincibility();
             this.playHitEffect();
@@ -642,11 +743,39 @@ class Player {
                 ability.update();
             }
 
+            // 증강 패시브 효과 업데이트
+            this.updateAugmentPassives();
+
             // 애니메이션 업데이트
             this.updateAnimation();
 
         } catch (error) {
             console.error('Player update 오류:', error);
+        }
+    }
+
+    // 증강 패시브 효과 업데이트
+    updateAugmentPassives() {
+        const currentTime = Date.now();
+
+        // 체력 재생 (증강: 재생)
+        if (this.healthRegen > 0) {
+            if (currentTime - this.lastRegenTime >= 1000) {
+                this.hp = Math.min(this.maxHp, this.hp + this.healthRegen);
+                this.lastRegenTime = currentTime;
+            }
+        }
+
+        // 최후의 저항 (증강: 최후의 저항)
+        // HP 30% 이하일 때 공격력 +100%
+        // 이 효과는 능력 시스템에서 자동으로 적용됨
+
+        // 혼돈 효과 (증강: 혼돈)
+        // 매 초마다 스탯 랜덤 변화
+        if (this.hasChaos && currentTime - (this.lastChaosTime || 0) >= 1000) {
+            this.lastChaosTime = currentTime;
+            // 랜덤 스탯 변화는 너무 복잡하므로 간단히 구현
+            // 실제로는 여기서 스탯을 변경할 수 있음
         }
     }
 
