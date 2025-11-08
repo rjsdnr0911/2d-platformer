@@ -157,11 +157,16 @@ class AugmentSystem {
         // 게임 일시정지
         this.scene.physics.pause();
 
+        // 카메라 중앙 좌표 계산
+        const camera = this.scene.cameras.main;
+        const centerX = camera.worldView.x + camera.width / 2;
+        const centerY = camera.worldView.y + camera.height / 2;
+
         // 화면 오버레이
         const overlay = this.scene.add.rectangle(
-            this.scene.cameras.main.scrollX + 400,
-            this.scene.cameras.main.scrollY + 300,
-            800, 600,
+            centerX,
+            centerY,
+            camera.width, camera.height,
             0x000000, 0.9
         );
         overlay.setDepth(900);
@@ -169,11 +174,11 @@ class AugmentSystem {
 
         // 제목
         const titleText = this.scene.add.text(
-            400, 60,
+            centerX, centerY - 240,
             '🎯 증강 선택',
             {
                 fontFamily: 'Jua',
-                fontSize: '52px',
+                fontSize: '48px',
                 fill: '#FFD700',
                 fontStyle: 'bold',
                 stroke: '#000000',
@@ -186,11 +191,11 @@ class AugmentSystem {
 
         // 직업 표시
         const jobText = this.scene.add.text(
-            400, 110,
+            centerX, centerY - 190,
             `현재 직업: ${player.getCurrentAbility()?.name || '없음'}`,
             {
                 fontFamily: 'Jua',
-                fontSize: '24px',
+                fontSize: '22px',
                 fill: '#AAAAAA',
                 fontStyle: 'bold'
             }
@@ -215,14 +220,16 @@ class AugmentSystem {
         };
 
         // 증강 카드 생성
-        const cardWidth = 240;
-        const cardHeight = 320;
-        const startX = 400 - (cardWidth * 1.5 + 30);
-        const cardY = 300;
+        const cardWidth = 220;
+        const cardHeight = 300;
+        const spacing = 20;
+        const totalWidth = cardWidth * 3 + spacing * 2;
+        const startX = centerX - totalWidth / 2 + cardWidth / 2;
+        const cardY = centerY;
         const cards = [];
 
         augments.forEach((augment, index) => {
-            const cardX = startX + (cardWidth + 30) * index;
+            const cardX = startX + (cardWidth + spacing) * index;
 
             // 카드 배경
             const cardBg = this.scene.add.rectangle(

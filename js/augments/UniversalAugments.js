@@ -327,14 +327,14 @@ const UNIVERSAL_AUGMENTS = [
                         player.overdriveActive = true;
                         player.sprite.setTint(0xFF0000);
 
-                        const originalSpeed = player.moveSpeed;
-                        player.moveSpeed *= 2;
-                        player.attackMultiplier *= 2;
+                        const originalSpeedBonus = player.speedBonus;
+                        player.speedBonus = (player.speedBonus || 0) + CONSTANTS.PLAYER.SPEED; // 2배 효과
+                        player.attackMultiplier = (player.attackMultiplier || 1) * 2;
 
                         scene.time.delayedCall(5000, () => {
                             player.overdriveActive = false;
                             player.sprite.clearTint();
-                            player.moveSpeed = originalSpeed;
+                            player.speedBonus = originalSpeedBonus;
                             player.attackMultiplier /= 2;
                         });
                     }
