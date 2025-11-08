@@ -238,6 +238,7 @@ class RoguelikeEnemy {
             this.sprite.y,
             6, 0xFF00FF
         );
+        projectile.hasHit = false;
 
         this.scene.physics.add.existing(projectile);
         projectile.body.setVelocity(
@@ -246,18 +247,43 @@ class RoguelikeEnemy {
         );
         projectile.body.setAllowGravity(false);
 
-        // 플레이어와 충돌 (player.sprite 사용)
-        const playerSprite = player.sprite || player;
-        this.scene.physics.add.overlap(projectile, playerSprite, () => {
-            if (player.takeDamage) {
-                player.takeDamage(this.damage);
-            }
-            projectile.destroy();
+        // 주기적으로 플레이어와 충돌 체크
+        const checkCollision = this.scene.time.addEvent({
+            delay: 16,
+            callback: () => {
+                if (!projectile.active || projectile.hasHit) {
+                    checkCollision.remove();
+                    return;
+                }
+
+                if (player && player.active) {
+                    const playerX = player.x || (player.sprite ? player.sprite.x : 0);
+                    const playerY = player.y || (player.sprite ? player.sprite.y : 0);
+
+                    const distance = Phaser.Math.Distance.Between(
+                        projectile.x, projectile.y,
+                        playerX, playerY
+                    );
+
+                    if (distance < 25) {
+                        if (player.takeDamage) {
+                            player.takeDamage(this.damage);
+                        }
+                        projectile.hasHit = true;
+                        projectile.destroy();
+                        checkCollision.remove();
+                    }
+                }
+            },
+            loop: true
         });
 
         // 2초 후 제거
         this.scene.time.delayedCall(2000, () => {
-            if (projectile.active) projectile.destroy();
+            if (projectile.active) {
+                projectile.destroy();
+                checkCollision.remove();
+            }
         });
     }
 
@@ -448,34 +474,66 @@ class RoguelikeEnemy {
                 -150
             );
 
-            // 플레이어와 충돌 시 획득
+            // 플레이어와 충돌 시 획득 (타이머 기반)
             if (this.scene.player) {
-                const playerSprite = this.scene.player.sprite || this.scene.player;
-                this.scene.physics.add.overlap(itemDrop, playerSprite, () => {
-                    this.scene.player.inventoryManager.addPassiveItem(item);
-                    itemDrop.destroy();
+                itemDrop.hasBeenPickedUp = false;
 
-                    // 알림
-                    const notification = this.scene.add.text(
-                        this.scene.player.x,
-                        this.scene.player.y - 50,
-                        `${item.name} 획득!`,
-                        {
-                            fontFamily: 'Jua',
-                            fontSize: '16px',
-                            fill: '#FFD700',
-                            fontStyle: 'bold'
+                const checkPickup = this.scene.time.addEvent({
+                    delay: 50,
+                    callback: () => {
+                        if (!itemDrop.active || itemDrop.hasBeenPickedUp) {
+                            checkPickup.remove();
+                            return;
                         }
-                    );
-                    notification.setOrigin(0.5);
 
-                    this.scene.tweens.add({
-                        targets: notification,
-                        y: notification.y - 30,
-                        alpha: 0,
-                        duration: 1500,
-                        onComplete: () => notification.destroy()
-                    });
+                        if (this.scene.player && this.scene.player.active) {
+                            const playerX = this.scene.player.x;
+                            const playerY = this.scene.player.y;
+
+                            const distance = Phaser.Math.Distance.Between(
+                                itemDrop.x, itemDrop.y,
+                                playerX, playerY
+                            );
+
+                            if (distance < 30) {
+                                this.scene.player.inventoryManager.addPassiveItem(item);
+                                itemDrop.hasBeenPickedUp = true;
+                                itemDrop.destroy();
+                                checkPickup.remove();
+
+                                // 알림
+                                const notification = this.scene.add.text(
+                                    playerX,
+                                    playerY - 50,
+                                    `${item.name} 획득!`,
+                                    {
+                                        fontFamily: 'Jua',
+                                        fontSize: '16px',
+                                        fill: '#FFD700',
+                                        fontStyle: 'bold'
+                                    }
+                                );
+                                notification.setOrigin(0.5);
+
+                                this.scene.tweens.add({
+                                    targets: notification,
+                                    y: notification.y - 30,
+                                    alpha: 0,
+                                    duration: 1500,
+                                    onComplete: () => notification.destroy()
+                                });
+                            }
+                        }
+                    },
+                    loop: true
+                });
+
+                // 10초 후 아이템 제거
+                this.scene.time.delayedCall(10000, () => {
+                    if (itemDrop.active && !itemDrop.hasBeenPickedUp) {
+                        itemDrop.destroy();
+                        checkPickup.remove();
+                    }
                 });
             }
         }
