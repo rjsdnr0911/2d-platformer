@@ -91,12 +91,20 @@ class BossRushScene extends Phaser.Scene {
             this.bossDefeated = false;
             this.isTransitioning = false;
 
-            // 보스 순서 (SlimeBoss -> RinoBoss -> SkullBoss)
+            // 보스 순서 (7개 모든 보스, 난이도 순)
             this.bossSequence = [
                 { name: 'SlimeBoss', class: window.SlimeBoss, title: 'SLIME KING', color: '#00ff00' },
+                { name: 'BlueBirdBoss', class: window.BlueBirdBoss, title: 'SKY TERROR', color: '#00aaff' },
+                { name: 'CoopBoss', class: window.CoopBoss, title: 'ROOSTER WARRIOR', color: '#ff8800' },
+                { name: 'SwordBoss', class: window.SwordBoss, title: 'BLADE MASTER', color: '#ffff00' },
                 { name: 'RinoBoss', class: window.RinoBoss, title: 'RAGING RHINO', color: '#808080' },
-                { name: 'SkullBoss', class: window.SkullBoss, title: 'DEATH SKULL', color: '#8b00ff' }
+                { name: 'MageBoss', class: window.MageBoss, title: 'ARCHMAGE', color: '#aa00ff' },
+                { name: 'SkullBoss', class: window.SkullBoss, title: 'DEATH SKULL', color: '#ff0000' }
             ];
+
+            // 타이머 시작
+            this.startTime = Date.now();
+            this.elapsedTime = 0;
 
             // 키보드 입력
             this.cursors = null;
@@ -402,7 +410,7 @@ class BossRushScene extends Phaser.Scene {
         const bossText = this.add.text(
             CONSTANTS.GAME.WIDTH / 2,
             CONSTANTS.GAME.HEIGHT / 2,
-            `⚠️ BOSS ${bossIndex + 1}/3 ⚠️\n${bossInfo.title}`,
+            `⚠️ BOSS ${bossIndex + 1}/7 ⚠️\n${bossInfo.title}`,
             {
                 fontSize: '48px',
                 fill: bossInfo.color,
@@ -563,13 +571,37 @@ class BossRushScene extends Phaser.Scene {
             console.log('모든 보스 처치 완료!');
         }
 
+        // 클리어 시간 계산
+        this.elapsedTime = Date.now() - this.startTime;
+        const minutes = Math.floor(this.elapsedTime / 60000);
+        const seconds = Math.floor((this.elapsedTime % 60000) / 1000);
+        const milliseconds = Math.floor((this.elapsedTime % 1000) / 10);
+        const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+
+        // 순위표 저장
+        this.saveToLeaderboard(this.elapsedTime);
+        const rank = this.getRank(this.elapsedTime);
+
+        // 배경 어둡게
+        const overlay = this.add.rectangle(
+            CONSTANTS.GAME.WIDTH / 2,
+            CONSTANTS.GAME.HEIGHT / 2,
+            CONSTANTS.GAME.WIDTH,
+            CONSTANTS.GAME.HEIGHT,
+            0x000000,
+            0.7
+        );
+        overlay.setScrollFactor(0);
+        overlay.setDepth(999);
+
         // 최종 승리 텍스트
         const finalText = this.add.text(
             CONSTANTS.GAME.WIDTH / 2,
-            CONSTANTS.GAME.HEIGHT / 2,
-            '🎉 BOSS RUSH CLEAR! 🎉\n모든 보스를 격파했습니다!',
+            150,
+            '🎉 BOSS RUSH CLEAR! 🎉',
             {
-                fontSize: '42px',
+                fontFamily: 'Orbitron',
+                fontSize: '48px',
                 fill: '#FFD700',
                 fontStyle: 'bold',
                 stroke: '#000',
@@ -581,8 +613,191 @@ class BossRushScene extends Phaser.Scene {
         finalText.setScrollFactor(0);
         finalText.setDepth(1000);
 
-        this.time.delayedCall(3000, () => {
+        // 클리어 시간
+        const timeText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            220,
+            `⏱️ 클리어 시간: ${timeString}`,
+            {
+                fontFamily: 'Orbitron',
+                fontSize: '32px',
+                fill: '#FFFFFF',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 4
+            }
+        );
+        timeText.setOrigin(0.5);
+        timeText.setScrollFactor(0);
+        timeText.setDepth(1000);
+
+        // 랭크 표시
+        const rankText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            270,
+            `🏆 순위: ${rank}위`,
+            {
+                fontFamily: 'Jua',
+                fontSize: '28px',
+                fill: rank <= 3 ? '#FFD700' : '#FFFFFF',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 4
+            }
+        );
+        rankText.setOrigin(0.5);
+        rankText.setScrollFactor(0);
+        rankText.setDepth(1000);
+
+        // 순위표 표시
+        this.showLeaderboard(330);
+
+        // 버튼들
+        const retryButton = this.add.rectangle(
+            CONSTANTS.GAME.WIDTH / 2 - 120,
+            CONSTANTS.GAME.HEIGHT - 80,
+            200, 50,
+            0x4444FF
+        );
+        retryButton.setStrokeStyle(3, 0xFFFFFF);
+        retryButton.setInteractive();
+        retryButton.setScrollFactor(0);
+        retryButton.setDepth(1000);
+
+        const retryText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2 - 120,
+            CONSTANTS.GAME.HEIGHT - 80,
+            '다시 도전',
+            {
+                fontFamily: 'Jua',
+                fontSize: '24px',
+                fill: '#FFFFFF'
+            }
+        );
+        retryText.setOrigin(0.5);
+        retryText.setScrollFactor(0);
+        retryText.setDepth(1001);
+
+        retryButton.on('pointerdown', () => {
+            this.scene.restart();
+        });
+
+        retryButton.on('pointerover', () => {
+            retryButton.setFillStyle(0x6666FF);
+        });
+
+        retryButton.on('pointerout', () => {
+            retryButton.setFillStyle(0x4444FF);
+        });
+
+        // 메뉴로 버튼
+        const menuButton = this.add.rectangle(
+            CONSTANTS.GAME.WIDTH / 2 + 120,
+            CONSTANTS.GAME.HEIGHT - 80,
+            200, 50,
+            0xFF4444
+        );
+        menuButton.setStrokeStyle(3, 0xFFFFFF);
+        menuButton.setInteractive();
+        menuButton.setScrollFactor(0);
+        menuButton.setDepth(1000);
+
+        const menuText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2 + 120,
+            CONSTANTS.GAME.HEIGHT - 80,
+            '메인 메뉴',
+            {
+                fontFamily: 'Jua',
+                fontSize: '24px',
+                fill: '#FFFFFF'
+            }
+        );
+        menuText.setOrigin(0.5);
+        menuText.setScrollFactor(0);
+        menuText.setDepth(1001);
+
+        menuButton.on('pointerdown', () => {
             this.scene.start('MainMenuScene');
+        });
+
+        menuButton.on('pointerover', () => {
+            menuButton.setFillStyle(0xFF6666);
+        });
+
+        menuButton.on('pointerout', () => {
+            menuButton.setFillStyle(0xFF4444);
+        });
+    }
+
+    // 순위표 저장 (로컬 스토리지)
+    saveToLeaderboard(time) {
+        let leaderboard = JSON.parse(localStorage.getItem('bossRushLeaderboard') || '[]');
+
+        leaderboard.push({
+            time: time,
+            date: new Date().toLocaleDateString()
+        });
+
+        // 시간순 정렬 (짧은 시간부터)
+        leaderboard.sort((a, b) => a.time - b.time);
+
+        // 상위 10개만 저장
+        leaderboard = leaderboard.slice(0, 10);
+
+        localStorage.setItem('bossRushLeaderboard', JSON.stringify(leaderboard));
+    }
+
+    // 현재 랭크 가져오기
+    getRank(time) {
+        const leaderboard = JSON.parse(localStorage.getItem('bossRushLeaderboard') || '[]');
+        const index = leaderboard.findIndex(entry => entry.time === time);
+        return index + 1;
+    }
+
+    // 순위표 표시
+    showLeaderboard(startY) {
+        const leaderboard = JSON.parse(localStorage.getItem('bossRushLeaderboard') || '[]');
+
+        const titleText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2,
+            startY,
+            '📊 최고 기록 TOP 5',
+            {
+                fontFamily: 'Jua',
+                fontSize: '24px',
+                fill: '#FFD700',
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 3
+            }
+        );
+        titleText.setOrigin(0.5);
+        titleText.setScrollFactor(0);
+        titleText.setDepth(1000);
+
+        const top5 = leaderboard.slice(0, 5);
+        top5.forEach((entry, index) => {
+            const minutes = Math.floor(entry.time / 60000);
+            const seconds = Math.floor((entry.time % 60000) / 1000);
+            const milliseconds = Math.floor((entry.time % 1000) / 10);
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`;
+
+            const rankColor = index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : index === 2 ? '#CD7F32' : '#FFFFFF';
+
+            const entryText = this.add.text(
+                CONSTANTS.GAME.WIDTH / 2,
+                startY + 40 + (index * 30),
+                `${index + 1}. ${timeString}`,
+                {
+                    fontFamily: 'Orbitron',
+                    fontSize: '20px',
+                    fill: rankColor,
+                    fontStyle: 'bold'
+                }
+            );
+            entryText.setOrigin(0.5);
+            entryText.setScrollFactor(0);
+            entryText.setDepth(1000);
         });
     }
 
@@ -606,9 +821,9 @@ class BossRushScene extends Phaser.Scene {
 
         // 보스 진행도 표시
         this.bossCountText = this.add.text(
-            CONSTANTS.GAME.WIDTH / 2,
+            CONSTANTS.GAME.WIDTH / 2 - 100,
             50,
-            'BOSS: 1/3',
+            'BOSS: 1/7',
             {
                 fontFamily: 'Orbitron',
                 fontSize: '20px',
@@ -620,6 +835,23 @@ class BossRushScene extends Phaser.Scene {
         );
         this.bossCountText.setOrigin(0.5, 0);
         this.bossCountText.setScrollFactor(0);
+
+        // 타이머 표시
+        this.timerText = this.add.text(
+            CONSTANTS.GAME.WIDTH / 2 + 100,
+            50,
+            '⏱️ 0:00.00',
+            {
+                fontFamily: 'Orbitron',
+                fontSize: '20px',
+                fill: '#FFFF00',
+                backgroundColor: '#000',
+                padding: { x: 10, y: 5 },
+                fontStyle: 'bold'
+            }
+        );
+        this.timerText.setOrigin(0.5, 0);
+        this.timerText.setScrollFactor(0);
 
         // 체력 표시
         this.healthText = this.add.text(16, 84, '', {
@@ -716,7 +948,16 @@ class BossRushScene extends Phaser.Scene {
     updateUI() {
         // 보스 진행도
         if (this.bossCountText) {
-            this.bossCountText.setText(`BOSS: ${this.currentBossIndex + 1}/3`);
+            this.bossCountText.setText(`BOSS: ${this.currentBossIndex + 1}/7`);
+        }
+
+        // 타이머 업데이트
+        if (this.timerText && this.startTime) {
+            const elapsed = Date.now() - this.startTime;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            const milliseconds = Math.floor((elapsed % 1000) / 10);
+            this.timerText.setText(`⏱️ ${minutes}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(2, '0')}`);
         }
 
         // 플레이어 체력
