@@ -186,8 +186,9 @@ class RoguelikeMenuScene extends Phaser.Scene {
     }
 
     showSkullSelection() {
-        // 임시 - Phase 1에서 구현 예정
-        this.showComingSoon('스컬 선택 화면은 곧 추가됩니다!\n\nPhase 1에서 구현 중...');
+        // Phase 1: 기본 스컬(전사)로 시작
+        // Phase 2에서 스컬 선택 UI 추가 예정
+        this.scene.start('RoguelikeGameScene');
     }
 
     showHelpDialog() {
