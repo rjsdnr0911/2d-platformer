@@ -42,7 +42,7 @@ class RoguelikeGameScene extends Phaser.Scene {
 
         // 카메라 설정
         this.cameras.main.setBounds(0, 0, this.roomGenerator.roomWidth, this.roomGenerator.roomHeight);
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
+        this.cameras.main.startFollow(this.player.sprite, true, 0.1, 0.1);
 
         // 물리 월드 설정
         this.physics.world.setBounds(0, 0, this.roomGenerator.roomWidth, this.roomGenerator.roomHeight);
@@ -58,7 +58,7 @@ class RoguelikeGameScene extends Phaser.Scene {
     setupCollisions() {
         // 플레이어 vs 플랫폼
         this.roomGenerator.platforms.forEach(platform => {
-            this.physics.add.collider(this.player, platform);
+            this.physics.add.collider(this.player.sprite, platform);
         });
 
         // 적 vs 플랫폼
@@ -110,7 +110,7 @@ class RoguelikeGameScene extends Phaser.Scene {
         // 새로 생성된 플랫폼과 플레이어 충돌
         this.roomGenerator.platforms.forEach(platform => {
             if (platform.body && !platform.hasPlayerCollider) {
-                this.physics.add.collider(this.player, platform);
+                this.physics.add.collider(this.player.sprite, platform);
                 platform.hasPlayerCollider = true;
             }
         });

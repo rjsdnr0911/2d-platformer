@@ -246,8 +246,9 @@ class RoguelikeEnemy {
         );
         projectile.body.setAllowGravity(false);
 
-        // 플레이어와 충돌
-        this.scene.physics.add.overlap(projectile, player, () => {
+        // 플레이어와 충돌 (player.sprite 사용)
+        const playerSprite = player.sprite || player;
+        this.scene.physics.add.overlap(projectile, playerSprite, () => {
             if (player.takeDamage) {
                 player.takeDamage(this.damage);
             }
@@ -449,7 +450,8 @@ class RoguelikeEnemy {
 
             // 플레이어와 충돌 시 획득
             if (this.scene.player) {
-                this.scene.physics.add.overlap(itemDrop, this.scene.player, () => {
+                const playerSprite = this.scene.player.sprite || this.scene.player;
+                this.scene.physics.add.overlap(itemDrop, playerSprite, () => {
                     this.scene.player.inventoryManager.addPassiveItem(item);
                     itemDrop.destroy();
 

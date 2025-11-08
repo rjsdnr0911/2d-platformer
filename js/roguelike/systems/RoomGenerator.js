@@ -570,7 +570,7 @@ class RoomGenerator {
                 if (this.scene.player) {
                     this.scene.player.x = 100;
                     this.scene.player.y = this.roomHeight - 200;
-                    this.scene.player.setVelocity(0, 0);
+                    this.scene.player.sprite.body.setVelocity(0, 0);
                 }
 
                 // 페이드 인

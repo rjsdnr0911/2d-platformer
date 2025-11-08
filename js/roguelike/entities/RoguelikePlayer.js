@@ -1,20 +1,39 @@
 // 로그라이크 모드 전용 플레이어 클래스
-class RoguelikePlayer extends Phaser.Physics.Arcade.Sprite {
+class RoguelikePlayer {
     constructor(scene, x, y) {
-        // 플레이어 스프라이트 생성 (임시로 사각형)
-        super(scene, x, y, null);
+        this.scene = scene;
+        this.active = true;
 
-        scene.add.existing(this);
-        scene.physics.add.existing(this);
-
-        // 기본 설정
-        this.setSize(40, 60);
-        this.setDisplaySize(40, 60);
-        this.setTint(0x00FF00); // 초록색 (임시)
+        // 플레이어 스프라이트 생성 (원형)
+        this.sprite = scene.add.circle(x, y, 20, 0x00AAFF);
+        scene.physics.add.existing(this.sprite);
 
         // 물리 설정
-        this.setCollideWorldBounds(true);
-        this.setMaxVelocity(300, 1000);
+        this.sprite.body.setCollideWorldBounds(true);
+        this.sprite.body.setMaxVelocity(300, 1000);
+
+        // 충돌 박스 조정
+        this.sprite.body.setSize(40, 40);
+        this.sprite.body.setOffset(-20, -20);
+
+        // 위치 프로퍼티 포워딩
+        Object.defineProperties(this, {
+            x: {
+                get() { return this.sprite.x; },
+                set(value) { this.sprite.x = value; }
+            },
+            y: {
+                get() { return this.sprite.y; },
+                set(value) { this.sprite.y = value; }
+            },
+            body: {
+                get() { return this.sprite.body; }
+            },
+            flipX: {
+                get() { return this.sprite.flipX; },
+                set(value) { this.sprite.flipX = value; }
+            }
+        });
 
         // 기본 스탯
         this.maxHealth = 50;
@@ -147,13 +166,13 @@ class RoguelikePlayer extends Phaser.Physics.Arcade.Sprite {
     // 이동
     handleMovement() {
         if (this.keys.left.isDown) {
-            this.setVelocityX(-this.moveSpeed);
+            this.sprite.body.setVelocityX(-this.moveSpeed);
             this.flipX = true;
         } else if (this.keys.right.isDown) {
-            this.setVelocityX(this.moveSpeed);
+            this.sprite.body.setVelocityX(this.moveSpeed);
             this.flipX = false;
         } else {
-            this.setVelocityX(0);
+            this.sprite.body.setVelocityX(0);
         }
     }
 
@@ -162,10 +181,10 @@ class RoguelikePlayer extends Phaser.Physics.Arcade.Sprite {
         if (Phaser.Input.Keyboard.JustDown(this.keys.up)) {
             if (this.body.touching.down) {
                 // 일반 점프
-                this.setVelocityY(this.jumpVelocity);
+                this.sprite.body.setVelocityY(this.jumpVelocity);
             } else if (this.canDoubleJump && !this.hasDoubleJumped) {
                 // 더블 점프
-                this.setVelocityY(this.jumpVelocity * 0.9);
+                this.sprite.body.setVelocityY(this.jumpVelocity * 0.9);
                 this.hasDoubleJumped = true;
             }
         }
@@ -262,7 +281,7 @@ class RoguelikePlayer extends Phaser.Physics.Arcade.Sprite {
             if (time - this.lastDashTime >= this.dashCooldown) {
                 const direction = this.flipX ? -1 : 1;
 
-                this.setVelocityX(direction * 400);
+                this.sprite.body.setVelocityX(direction * 400);
                 this.isDashing = true;
 
                 // onDash 효과 발동
@@ -306,9 +325,9 @@ class RoguelikePlayer extends Phaser.Physics.Arcade.Sprite {
         this.health = Math.max(0, this.health - actualDamage);
 
         // 피격 효과
-        this.setTint(0xFF0000);
+        this.sprite.setTint(0xFF0000);
         this.scene.time.delayedCall(100, () => {
-            this.clearTint();
+            this.sprite.clearTint();
         });
 
         // onHit 효과 발동
@@ -351,8 +370,35 @@ class RoguelikePlayer extends Phaser.Physics.Arcade.Sprite {
         this.defaultBasicAttack();
     }
 
+    // 헬퍼 메서드들 (스컬에서 사용)
+    setVelocityX(value) {
+        this.sprite.body.setVelocityX(value);
+    }
+
+    setVelocityY(value) {
+        this.sprite.body.setVelocityY(value);
+    }
+
+    setVelocity(x, y) {
+        this.sprite.body.setVelocity(x, y);
+    }
+
+    setTint(color) {
+        this.sprite.setTint(color);
+    }
+
+    clearTint() {
+        this.sprite.clearTint();
+    }
+
+    setAlpha(value) {
+        this.sprite.setAlpha(value);
+    }
+
     // 정리
-    destroy(fromScene) {
+    destroy() {
+        this.active = false;
+
         if (this.skullManager) {
             this.skullManager.destroy();
         }
@@ -365,7 +411,7 @@ class RoguelikePlayer extends Phaser.Physics.Arcade.Sprite {
         if (this.hpBar) this.hpBar.destroy();
         if (this.hpText) this.hpText.destroy();
 
-        super.destroy(fromScene);
+        if (this.sprite) this.sprite.destroy();
     }
 }
 
