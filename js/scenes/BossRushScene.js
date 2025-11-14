@@ -106,9 +106,6 @@ class BossRushScene extends Phaser.Scene {
             this.startTime = Date.now();
             this.elapsedTime = 0;
 
-            // 증강 시스템 초기화
-            this.augmentSystem = new AugmentSystem(this);
-
             // 키보드 입력
             this.cursors = null;
             this.keys = null;
@@ -225,12 +222,9 @@ class BossRushScene extends Phaser.Scene {
             // 현재 씬을 레지스트리에 저장
             this.registry.set('activeScene', 'BossRushScene');
 
-            // 게임 시작 시 증강 선택
+            // 게임 시작 시 첫 번째 보스 소환
             this.time.delayedCall(1000, () => {
-                this.augmentSystem.showAugmentSelection(window.player, () => {
-                    // 증강 선택 후 첫 번째 보스 소환
-                    this.spawnBoss(0);
-                });
+                this.spawnBoss(0);
             });
 
             if (CONSTANTS.GAME.DEBUG) {
@@ -531,11 +525,9 @@ class BossRushScene extends Phaser.Scene {
             console.log(`보스 ${this.currentBossIndex + 1} 처치!`);
         }
 
-        // 플레이어 체력 회복 (50% 기본 + 증강 보너스)
-        const baseHealRatio = 0.5;
-        const augmentHealRatio = window.player.healOnBossKill || 0;
-        const totalHealRatio = baseHealRatio + augmentHealRatio;
-        const healAmount = Math.floor(window.player.maxHp * totalHealRatio);
+        // 플레이어 체력 회복 (50%)
+        const healRatio = 0.5;
+        const healAmount = Math.floor(window.player.maxHp * healRatio);
         window.player.hp = Math.min(window.player.maxHp, window.player.hp + healAmount);
 
         // 승리 텍스트
@@ -568,11 +560,9 @@ class BossRushScene extends Phaser.Scene {
                 this.currentBossIndex++;
                 this.isTransitioning = false;
 
-                // 증강 선택 후 다음 보스 소환
+                // 다음 보스 소환
                 this.time.delayedCall(500, () => {
-                    this.augmentSystem.showAugmentSelection(window.player, () => {
-                        this.spawnBoss(this.currentBossIndex);
-                    });
+                    this.spawnBoss(this.currentBossIndex);
                 });
             }
         });
@@ -1049,11 +1039,6 @@ class BossRushScene extends Phaser.Scene {
     update() {
         try {
             if (!window.player) return;
-
-            // 증강 시스템 업데이트
-            if (this.augmentSystem) {
-                this.augmentSystem.update();
-            }
 
             // 터치 입력과 키보드 입력 통합
             let inputCursors = this.cursors;
