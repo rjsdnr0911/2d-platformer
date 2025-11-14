@@ -141,62 +141,10 @@ class MainMenuScene extends Phaser.Scene {
                 0xFF8800 // 주황색
             );
 
-            // 로그라이크 모드 버튼 (협동 보스 레이드 아래)
-            const roguelikeButtonBg = this.add.rectangle(
-                centerX,
-                540,
-                220,
-                50,
-                0x9D4EDD  // 보라색
-            );
-            roguelikeButtonBg.setInteractive({ useHandCursor: true });
-
-            const roguelikeText = this.add.text(
-                centerX,
-                540,
-                '🔥 로그라이크 모드 🔥',
-                {
-                    fontFamily: 'Jua',
-                    fontSize: '24px',
-                    fill: '#FFD700',  // 금색
-                    fontStyle: 'bold',
-                    stroke: '#000',
-                    strokeThickness: 3
-                }
-            );
-            roguelikeText.setOrigin(0.5);
-
-            // 펄스 애니메이션 (주목 끌기)
-            this.tweens.add({
-                targets: [roguelikeButtonBg, roguelikeText],
-                scaleX: 1.05,
-                scaleY: 1.05,
-                duration: 800,
-                yoyo: true,
-                repeat: -1,
-                ease: 'Sine.easeInOut'
-            });
-
-            // 호버 효과
-            roguelikeButtonBg.on('pointerover', () => {
-                roguelikeButtonBg.setFillStyle(0xBB6BD9);  // 밝은 보라색
-                roguelikeText.setScale(1.1);
-            });
-
-            roguelikeButtonBg.on('pointerout', () => {
-                roguelikeButtonBg.setFillStyle(0x9D4EDD);
-                roguelikeText.setScale(1.0);
-            });
-
-            // 클릭 이벤트
-            roguelikeButtonBg.on('pointerup', () => {
-                this.scene.start('RoguelikeMenuScene');
-            });
-
-            // 최고 점수 표시 (더 아래로 이동)
+            // 최고 점수 표시
             this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                560,
+                540,
                 '',
                 {
                     fontFamily: 'Jua',
