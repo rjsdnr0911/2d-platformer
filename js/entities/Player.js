@@ -373,7 +373,7 @@ class Player {
     takeDamage(damage, attacker = null) {
         if (!this.isAlive || this.isInvincible) return;
 
-        // 회피 체크 (증강: 보호막)
+        // 회피 체크
         if (this.dodgeChance > 0 && Math.random() < this.dodgeChance) {
             if (CONSTANTS.GAME.DEBUG) {
                 console.log('공격 회피!');
@@ -410,7 +410,7 @@ class Player {
         const actualDamage = Math.ceil(damage * (1 - this.damageReduction - meleeDefenseBonus));
         this.hp -= actualDamage;
 
-        // 가시 데미지 (증강: 가시)
+        // 가시 데미지
         if (this.thornsDamage > 0 && attacker && attacker.takeDamage) {
             attacker.takeDamage(this.thornsDamage);
             if (CONSTANTS.GAME.DEBUG) {
@@ -419,7 +419,7 @@ class Player {
         }
 
         if (this.hp <= 0) {
-            // 부활 체크 (증강: 불사신)
+            // 부활 체크
             if (this.hasRevive && this.reviveCount > 0) {
                 this.reviveCount--;
                 this.hp = Math.floor(this.maxHp * 0.5);
