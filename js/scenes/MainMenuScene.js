@@ -117,10 +117,10 @@ class MainMenuScene extends Phaser.Scene {
                 0xFF4444 // 빨간색
             );
 
-            // 온라인 대전 버튼 (가운데 하단)
+            // 온라인 1대1 버튼 (왼쪽 하단)
             const onlineButton = this.createButton(
-                centerX,
-                420,
+                centerX - buttonSpacing,
+                440,
                 '🌐 온라인 1대1',
                 () => {
                     // 멀티플레이어 메뉴로 이동
@@ -129,10 +129,10 @@ class MainMenuScene extends Phaser.Scene {
                 0x44FF44 // 초록색
             );
 
-            // 협동 보스 레이드 버튼 (온라인 버튼 아래)
+            // 협동 보스 레이드 버튼 (오른쪽 하단)
             const coopBossButton = this.createButton(
-                centerX,
-                480,
+                centerX + buttonSpacing,
+                440,
                 '🤝 협동 보스 레이드',
                 () => {
                     // 협동 보스 레이드 메뉴로 이동
@@ -144,7 +144,7 @@ class MainMenuScene extends Phaser.Scene {
             // 최고 점수 표시
             this.highScoreText = this.add.text(
                 CONSTANTS.GAME.WIDTH / 2,
-                540,
+                510,
                 '',
                 {
                     fontFamily: 'Jua',
