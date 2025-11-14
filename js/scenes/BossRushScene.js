@@ -1088,6 +1088,17 @@ class BossRushScene extends Phaser.Scene {
             // 플레이어 업데이트
             window.player.update(inputCursors, inputKeys);
 
+            // 개발자 테스트용 보스 스킵 (Ctrl + Shift + N)
+            if (this.input.keyboard.addKey('N').isDown &&
+                this.input.keyboard.addKey('SHIFT').isDown &&
+                this.input.keyboard.addKey('CTRL').isDown) {
+                if (this.boss && this.boss.isAlive && !this.isTransitioning) {
+                    // 현재 보스 즉시 처치
+                    this.boss.hp = 0;
+                    this.boss.die();
+                }
+            }
+
             // 보스 업데이트
             if (this.boss && this.boss.isAlive) {
                 this.boss.update();
