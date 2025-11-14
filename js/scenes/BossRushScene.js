@@ -94,9 +94,9 @@ class BossRushScene extends Phaser.Scene {
             // 보스 순서 (7개 모든 보스, 난이도 순)
             this.bossSequence = [
                 { name: 'SlimeBoss', class: window.SlimeBoss, title: 'SLIME KING', color: '#00ff00' },
+                { name: 'SwordBoss', class: window.SwordBoss, title: 'BLADE MASTER', color: '#ffff00' },
                 { name: 'BlueBirdBoss', class: window.BlueBirdBoss, title: 'SKY TERROR', color: '#00aaff' },
                 { name: 'CoopBoss', class: window.CoopBoss, title: 'ROOSTER WARRIOR', color: '#ff8800' },
-                { name: 'SwordBoss', class: window.SwordBoss, title: 'BLADE MASTER', color: '#ffff00' },
                 { name: 'RinoBoss', class: window.RinoBoss, title: 'RAGING RHINO', color: '#808080' },
                 { name: 'MageBoss', class: window.MageBoss, title: 'ARCHMAGE', color: '#aa00ff' },
                 { name: 'SkullBoss', class: window.SkullBoss, title: 'DEATH SKULL', color: '#ff0000' }
