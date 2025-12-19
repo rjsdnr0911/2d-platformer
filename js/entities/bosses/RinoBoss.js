@@ -154,19 +154,46 @@ class RinoBoss extends BaseBoss {
         this.isExecutingPattern = true;
         this.isCharging = true;
 
+        // 돌진 방향 계산
+        const chargeDir = this.direction;
+        const chargeDist = 600; // 예상 돌진 거리
+
+        // 공격 경로 표시 (반투명 빨간색 직사각형)
+        const indicator = this.scene.add.rectangle(
+            this.sprite.x + (chargeDir * chargeDist / 2),
+            this.sprite.y + 5,
+            chargeDist,
+            40,
+            0xff0000,
+            0.2
+        );
+        indicator.setDepth(1);
+
+        // 깜빡임 애니메이션
+        const indicatorTween = this.scene.tweens.add({
+            targets: indicator,
+            alpha: 0.5,
+            duration: 100,
+            yoyo: true,
+            repeat: 4
+        });
+
         // 차징 준비 (뒤로 물러남)
-        this.sprite.body.setVelocityX(-this.direction * 100);
+        this.sprite.body.setVelocityX(-chargeDir * 100);
 
         this.scene.time.delayedCall(500, () => {
+            // 인디케이터 제거
+            indicator.destroy();
+
             if (!this.sprite || !this.sprite.active) return;
 
             // 돌진!
             const chargeSpeed = this.phase === 1 ? 400 : 500;
-            this.sprite.body.setVelocityX(chargeSpeed * this.direction);
+            this.sprite.body.setVelocityX(chargeSpeed * chargeDir);
             this.sprite.play('rino_run', true);
 
             // 돌진 지속 시간
-            this.scene.time.delayedCall(1000, () => {
+            this.scene.time.delayedCall(1200, () => { // 지속 시간 약간 증가 (1000 -> 1200)
                 if (this.sprite && this.sprite.body) {
                     this.sprite.body.setVelocityX(0);
                     this.sprite.play('rino_idle', true);
@@ -178,7 +205,7 @@ class RinoBoss extends BaseBoss {
             // 플레이어 충돌 체크
             const chargeCheck = this.scene.time.addEvent({
                 delay: 50,
-                repeat: 20,
+                repeat: 24, // 지속 시간 증가에 맞춰 반복 횟수 조절
                 callback: () => {
                     if (!this.sprite || !this.sprite.active) {
                         chargeCheck.remove();
