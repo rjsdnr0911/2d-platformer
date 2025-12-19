@@ -733,56 +733,85 @@ class Stage1Scene extends Phaser.Scene {
         bossText.setScrollFactor(0);
         bossText.setDepth(1000);
 
-        // 보스 텍스트 애니메이션
+        // 보스 등장 알림 텍스트 애니메이션
         this.tweens.add({
             targets: bossText,
             scale: 1.2,
-            alpha: 0,
-            duration: 2000,
+            duration: 1000,
+            yoyo: true,
+            repeat: 1,
             onComplete: () => {
-                try {
-                    bossText.destroy();
+                bossText.destroy();
 
-                    if (CONSTANTS.GAME.DEBUG) {
-                        console.log('보스 텍스트 제거 완료, 보스 객체 생성 시작...');
+                // 보스 스폰 위치 경고 효과
+                const spawnX = 2900;
+                const spawnY = 400;
+
+                // 경고 원 (Ground 근처)
+                const warningCircle = this.add.circle(spawnX, spawnY + 50, 100, 0xff0000, 0.4);
+                warningCircle.setDepth(5);
+
+                // 경고 텍스트
+                const warningMsg = this.add.text(spawnX, spawnY - 50, '⚠️ WARNING ⚠️', {
+                    fontSize: '24px',
+                    fill: '#ff0000',
+                    fontStyle: 'bold',
+                    stroke: '#000',
+                    strokeThickness: 4
+                }).setOrigin(0.5);
+
+                // 경고 애니메이션 (깜빡임)
+                this.tweens.add({
+                    targets: [warningCircle, warningMsg],
+                    alpha: 0.1,
+                    duration: 300,
+                    yoyo: true,
+                    repeat: 5,
+                    onComplete: () => {
+                        warningCircle.destroy();
+                        warningMsg.destroy();
+
+                        try {
+                            if (CONSTANTS.GAME.DEBUG) {
+                                console.log('경고 효과 종료, 보스 객체 생성 시작...');
+                            }
+
+                            // 실제 보스 생성
+                            this.boss = new SlimeBoss(this, spawnX, spawnY);
+
+                            // 난이도 적용
+                            const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
+                            this.boss.maxHp = Math.round(this.boss.maxHp * difficultyMultiplier.enemyHpMultiplier);
+                            this.boss.hp = this.boss.maxHp;
+                            this.boss.damage = Math.round(this.boss.damage * difficultyMultiplier.enemyDamageMultiplier);
+                            if (this.boss.sprite) {
+                                this.boss.sprite.setData('damage', this.boss.damage);
+                            }
+
+                            if (CONSTANTS.GAME.DEBUG) {
+                                console.log('SlimeBoss 객체 생성 성공');
+                                console.log('보스 sprite:', this.boss.sprite);
+                                console.log('보스 sprite.body:', this.boss.sprite ? this.boss.sprite.body : null);
+                                console.log('보스 isAlive:', this.boss.isAlive);
+                                console.log('보스 isBoss:', this.boss.isBoss);
+                                console.log('보스 HP:', this.boss.hp, '난이도:', window.difficultyManager.getDifficulty());
+                            }
+
+                            this.enemyList.push(this.boss);
+                            this.enemies.add(this.boss.sprite);
+
+                            // 보스 처치 이벤트 리스너
+                            this.events.on('bossDefeated', this.handleBossDefeated, this);
+
+                            if (CONSTANTS.GAME.DEBUG) {
+                                console.log('슬라임 킹 생성 완료! enemyList 크기:', this.enemyList.length);
+                            }
+                        } catch (error) {
+                            console.error('보스 생성 실패:', error);
+                            this.bossSpawned = false; // 실패 시 재시도 가능하게
+                        }
                     }
-
-                    // 보스 생성 (보스 구역: x=2900 근처)
-                    this.boss = new SlimeBoss(this, 2900, 400);
-
-                    // 난이도 적용
-                    const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
-                    this.boss.maxHp = Math.round(this.boss.maxHp * difficultyMultiplier.enemyHpMultiplier);
-                    this.boss.hp = this.boss.maxHp;
-                    this.boss.damage = Math.round(this.boss.damage * difficultyMultiplier.enemyDamageMultiplier);
-                    if (this.boss.sprite) {
-                        this.boss.sprite.setData('damage', this.boss.damage);
-                    }
-
-                    if (CONSTANTS.GAME.DEBUG) {
-                        console.log('SlimeBoss 객체 생성 성공');
-                        console.log('보스 sprite:', this.boss.sprite);
-                        console.log('보스 sprite.body:', this.boss.sprite ? this.boss.sprite.body : null);
-                        console.log('보스 isAlive:', this.boss.isAlive);
-                        console.log('보스 isBoss:', this.boss.isBoss);
-                        console.log('보스 HP:', this.boss.hp, '난이도:', window.difficultyManager.getDifficulty());
-                    }
-
-                    this.enemyList.push(this.boss);
-                    this.enemies.add(this.boss.sprite);
-
-                    // 보스 처치 이벤트 리스너
-                    this.events.on('bossDefeated', this.handleBossDefeated, this);
-
-                    if (CONSTANTS.GAME.DEBUG) {
-                        console.log('슬라임 킹 생성 완료! enemyList 크기:', this.enemyList.length);
-                    }
-                } catch (error) {
-                    console.error('보스 생성 중 오류 발생:', error);
-                    console.error('에러 스택:', error.stack);
-                    // 에러 발생 시 플래그 리셋
-                    this.bossSpawned = false;
-                }
+                });
             }
         });
     }
@@ -805,27 +834,6 @@ class Stage1Scene extends Phaser.Scene {
     }
 
     handleStageClear() {
-        // 스테이지 클리어 시간 계산
-        const startTime = this.registry.get('stageStartTime');
-        const clearTime = Date.now() - startTime;
-
-        // 스테이지 클리어 보너스
-        const stageClearScore = window.scoreManager.addStageClearScore();
-
-        // 시간 보너스
-        const timeBonus = window.scoreManager.calculateTimeBonus();
-
-        // 최종 점수
-        const finalScore = window.scoreManager.getCurrentScore();
-        this.registry.set('currentScore', finalScore);
-
-        if (CONSTANTS.GAME.DEBUG) {
-            console.log('스테이지 클리어 점수:', stageClearScore);
-            console.log('시간 보너스:', timeBonus);
-            console.log('최종 점수:', finalScore);
-        }
-
-        // 저장 데이터 업데이트
         const saveData = window.saveManager.load();
         window.saveManager.clearStage(this.stageNumber, clearTime, saveData);
 

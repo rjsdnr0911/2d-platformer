@@ -707,49 +707,80 @@ class Stage3Scene extends Phaser.Scene {
         bossText.setScrollFactor(0);
         bossText.setDepth(1000);
 
-        // 보스 텍스트 애니메이션
+        // 보스 등장 알림 텍스트 애니메이션
         this.tweens.add({
             targets: bossText,
             scale: 1.2,
-            alpha: 0,
-            duration: 2000,
+            duration: 1000,
+            yoyo: true,
+            repeat: 1,
             onComplete: () => {
-                try {
-                    bossText.destroy();
+                bossText.destroy();
 
-                    // SkullBoss 참조를 먼저 저장
-                    const SkullBossClass = window.SkullBoss;
+                // 보스 스폰 위치 경고 효과
+                const spawnX = 2950;
+                const spawnY = 350;
 
-                    if (!SkullBossClass) {
-                        throw new Error('SkullBoss 클래스가 정의되지 않았습니다');
+                // 경고 원 (Ground 근처)
+                const warningCircle = this.add.circle(spawnX, spawnY + 50, 150, 0xff0000, 0.4);
+                warningCircle.setDepth(5);
+
+                // 경고 텍스트
+                const warningMsg = this.add.text(spawnX, spawnY - 50, '⚠️ WARNING: DEATH SKULL ⚠️', {
+                    fontSize: '24px',
+                    fill: '#ff0000',
+                    fontStyle: 'bold',
+                    stroke: '#000',
+                    strokeThickness: 4
+                }).setOrigin(0.5);
+
+                // 경고 애니메이션 (깜빡임)
+                this.tweens.add({
+                    targets: [warningCircle, warningMsg],
+                    alpha: 0.1,
+                    duration: 300,
+                    yoyo: true,
+                    repeat: 5,
+                    onComplete: () => {
+                        warningCircle.destroy();
+                        warningMsg.destroy();
+
+                        try {
+                            // SkullBoss 참조를 먼저 저장
+                            const SkullBossClass = window.SkullBoss;
+
+                            if (!SkullBossClass) {
+                                throw new Error('SkullBoss 클래스가 정의되지 않았습니다');
+                            }
+
+                            // 보스 생성
+                            this.boss = new SkullBossClass(this, spawnX, spawnY);
+
+                            // 난이도 적용
+                            const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
+                            this.boss.maxHp = Math.round(this.boss.maxHp * difficultyMultiplier.enemyHpMultiplier);
+                            this.boss.hp = this.boss.maxHp;
+                            this.boss.damage = Math.round(this.boss.damage * difficultyMultiplier.enemyDamageMultiplier);
+                            if (this.boss.sprite) {
+                                this.boss.sprite.setData('damage', this.boss.damage);
+                            }
+
+                            this.enemyList.push(this.boss);
+                            this.enemies.add(this.boss.sprite);
+
+                            // 보스 처치 이벤트 리스너
+                            this.events.on('bossDefeated', this.handleBossDefeated, this);
+
+                            if (CONSTANTS.GAME.DEBUG) {
+                                console.log('해골 보스 생성 완료! HP:', this.boss.hp, '난이도:', window.difficultyManager.getDifficulty());
+                            }
+                        } catch (error) {
+                            console.error('보스 생성 중 오류:', error);
+                            console.error('에러 상세:', error.stack);
+                            this.bossSpawned = false;
+                        }
                     }
-
-                    // 보스 생성 (보스 구역: x=2950 근처)
-                    this.boss = new SkullBossClass(this, 2950, 350);
-
-                    // 난이도 적용
-                    const difficultyMultiplier = window.difficultyManager.getDifficultyInfo();
-                    this.boss.maxHp = Math.round(this.boss.maxHp * difficultyMultiplier.enemyHpMultiplier);
-                    this.boss.hp = this.boss.maxHp;
-                    this.boss.damage = Math.round(this.boss.damage * difficultyMultiplier.enemyDamageMultiplier);
-                    if (this.boss.sprite) {
-                        this.boss.sprite.setData('damage', this.boss.damage);
-                    }
-
-                    this.enemyList.push(this.boss);
-                    this.enemies.add(this.boss.sprite);
-
-                    // 보스 처치 이벤트 리스너
-                    this.events.on('bossDefeated', this.handleBossDefeated, this);
-
-                    if (CONSTANTS.GAME.DEBUG) {
-                        console.log('해골 보스 생성 완료! HP:', this.boss.hp, '난이도:', window.difficultyManager.getDifficulty());
-                    }
-                } catch (error) {
-                    console.error('보스 생성 중 오류:', error);
-                    console.error('에러 상세:', error.stack);
-                    this.bossSpawned = false;
-                }
+                });
             }
         });
     }
