@@ -543,20 +543,24 @@ class Stage1Scene extends Phaser.Scene {
         this.scoreText.setOrigin(1, 0);
         this.scoreText.setScrollFactor(0);
 
-        // 처치 수 표시 (오른쪽 위 점수 아래)
+        // 퀘스트 창 (중앙 상단, Stage 이름 아래)
         this.killCountText = this.add.text(
-            CONSTANTS.GAME.WIDTH - 16,
-            90,
+            CONSTANTS.GAME.WIDTH / 2,
+            55,
             '',
             {
+                fontFamily: 'Jua',
                 fontSize: '18px',
-                fill: '#ff4444',
-                backgroundColor: '#000',
-                padding: { x: 10, y: 5 },
-                fontStyle: 'bold'
+                fill: '#ffffff',
+                backgroundColor: '#00000088',
+                padding: { x: 15, y: 8 },
+                fontStyle: 'bold',
+                stroke: '#000',
+                strokeThickness: 2,
+                shadow: { offsetX: 1, offsetY: 1, color: '#000', blur: 2, fill: true }
             }
         );
-        this.killCountText.setOrigin(1, 0);
+        this.killCountText.setOrigin(0.5, 0);
         this.killCountText.setScrollFactor(0);
 
         // 체력 표시
@@ -621,9 +625,9 @@ class Stage1Scene extends Phaser.Scene {
             this.scoreText.setText(`점수: ${window.scoreManager.formatScore(currentScore)}`);
         }
 
-        // 처치 수 표시
+        // 처치 수 표시 (퀘스트 창 형식)
         if (this.killCountText) {
-            this.killCountText.setText(`Killed: ${this.killCount}/${this.totalEnemies}`);
+            this.killCountText.setText(`[퀘스트] 슬라임 ${this.killCount}/${this.totalEnemies}마리 처치`);
         }
 
         if (window.player && this.healthText) {
