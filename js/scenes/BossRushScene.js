@@ -151,25 +151,25 @@ class BossRushScene extends Phaser.Scene {
             let ability1, ability2;
 
             if (selectedJobSet === 'swordMagic') {
-                // 검/마법 세트
-                ability1 = new SwordAbility(this);
-                ability2 = new MagicAbility(this);
+                // 검/마법 세트: 마법부터 시작
+                ability1 = new MagicAbility(this);
+                ability2 = new SwordAbility(this);
 
                 if (CONSTANTS.GAME.DEBUG) {
-                    console.log('보스 러시 - 직업 세트: 검/마법');
+                    console.log('보스 러시 - 직업 세트: 검/마법 (마법 시작)');
                 }
             } else if (selectedJobSet === 'hammerBow') {
-                // 해머/활 세트
-                ability1 = new HammerAbility(this);
-                ability2 = new BowAbility(this);
+                // 해머/활 세트: 활부터 시작
+                ability1 = new BowAbility(this);
+                ability2 = new HammerAbility(this);
 
                 if (CONSTANTS.GAME.DEBUG) {
-                    console.log('보스 러시 - 직업 세트: 해머/활');
+                    console.log('보스 러시 - 직업 세트: 해머/활 (활 시작)');
                 }
             } else {
-                // 기본값: 검/마법
-                ability1 = new SwordAbility(this);
-                ability2 = new MagicAbility(this);
+                // 기본값: 마법 시작
+                ability1 = new MagicAbility(this);
+                ability2 = new SwordAbility(this);
             }
 
             window.player.equipAbility(ability1, 0);

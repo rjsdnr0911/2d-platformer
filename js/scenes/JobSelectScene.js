@@ -46,8 +46,8 @@ class JobSelectScene extends Phaser.Scene {
                     color: 0x4444ff,
                     recommended: true,
                     jobs: [
-                        { name: '검술', description: '빠른 3연타와 회전 베기' },
-                        { name: '마법', description: '화염구와 순간이동' }
+                        { name: '마법', description: '화염구와 순간이동' },
+                        { name: '검술', description: '빠른 3연타와 회전 베기' }
                     ],
                     features: [
                         '✓ 초보자 추천',
@@ -61,8 +61,8 @@ class JobSelectScene extends Phaser.Scene {
                     color: 0xff6b6b,
                     recommended: false,
                     jobs: [
-                        { name: '해머', description: '지면 충격과 낙하 공격' },
-                        { name: '활', description: '차징 화살과 분열 화살' }
+                        { name: '활', description: '차징 화살과 분열 화살' },
+                        { name: '해머', description: '지면 충격과 낙하 공격' }
                     ],
                     features: [
                         '✓ 높은 데미지',

@@ -82,6 +82,9 @@ class Stage2Scene extends Phaser.Scene {
             this.boss = null;
             this.bossSpawned = false;
             this.bossSpawning = false; // 보스 소환 진행 중 플래그
+            this.killCount = 0;
+            this.totalEnemies = 0;
+            this.killCountText = null;
 
             // 스테이지 정보
             this.stageNumber = 2;
@@ -130,22 +133,25 @@ class Stage2Scene extends Phaser.Scene {
             let ability1, ability2;
 
             if (selectedJobSet === 'swordMagic') {
-                ability1 = new SwordAbility(this);
-                ability2 = new MagicAbility(this);
+                // 검/마법 세트: 마법부터 시작
+                ability1 = new MagicAbility(this);
+                ability2 = new SwordAbility(this);
 
                 if (CONSTANTS.GAME.DEBUG) {
-                    console.log('직업 세트: 검/마법');
+                    console.log('직업 세트: 검/마법 (마법 시작)');
                 }
             } else if (selectedJobSet === 'hammerBow') {
-                ability1 = new HammerAbility(this);
-                ability2 = new BowAbility(this);
+                // 해머/활 세트: 활부터 시작
+                ability1 = new BowAbility(this);
+                ability2 = new HammerAbility(this);
 
                 if (CONSTANTS.GAME.DEBUG) {
-                    console.log('직업 세트: 해머/활');
+                    console.log('직업 세트: 해머/활 (활 시작)');
                 }
             } else {
-                ability1 = new SwordAbility(this);
-                ability2 = new MagicAbility(this);
+                // 기본값: 마법 시작
+                ability1 = new MagicAbility(this);
+                ability2 = new SwordAbility(this);
             }
 
             window.player.equipAbility(ability1, 0);
@@ -158,6 +164,9 @@ class Stage2Scene extends Phaser.Scene {
             // 적 생성 (검병 중심)
             this.enemies = this.physics.add.group();
             this.createEnemies();
+
+            // 총 적 수 계산
+            this.totalEnemies = this.enemyList.length;
 
             // 충돌 설정
             this.setupCollisions();
@@ -441,6 +450,7 @@ class Stage2Scene extends Phaser.Scene {
 
             // 적 처치 시 점수 추가 & 근접 캐릭터 흡혈 (Ghost = bat 타입 점수)
             if (willDie && !enemyEntity.isBoss) {
+                this.killCount++;
                 const score = window.scoreManager.addEnemyScore('bat');
                 if (score > 0) {
                     this.registry.set('currentScore', window.scoreManager.getCurrentScore());
@@ -496,6 +506,22 @@ class Stage2Scene extends Phaser.Scene {
         );
         this.scoreText.setOrigin(1, 0);
         this.scoreText.setScrollFactor(0);
+
+        // 처치 수 표시 (오른쪽 위 점수 아래)
+        this.killCountText = this.add.text(
+            CONSTANTS.GAME.WIDTH - 16,
+            90,
+            '',
+            {
+                fontSize: '18px',
+                fill: '#ff4444',
+                backgroundColor: '#000',
+                padding: { x: 10, y: 5 },
+                fontStyle: 'bold'
+            }
+        );
+        this.killCountText.setOrigin(1, 0);
+        this.killCountText.setScrollFactor(0);
 
         // 체력 표시
         this.healthText = this.add.text(16, 50, '', {
@@ -557,6 +583,11 @@ class Stage2Scene extends Phaser.Scene {
         if (this.scoreText) {
             const currentScore = window.scoreManager.getCurrentScore();
             this.scoreText.setText(`점수: ${window.scoreManager.formatScore(currentScore)}`);
+        }
+
+        // 처치 수 표시
+        if (this.killCountText) {
+            this.killCountText.setText(`Killed: ${this.killCount}/${this.totalEnemies}`);
         }
 
         if (window.player && this.healthText) {
