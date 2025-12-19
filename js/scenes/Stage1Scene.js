@@ -834,6 +834,27 @@ class Stage1Scene extends Phaser.Scene {
     }
 
     handleStageClear() {
+        // 스테이지 클리어 시간 계산
+        const startTime = this.registry.get('stageStartTime');
+        const clearTime = Date.now() - startTime;
+
+        // 스테이지 클리어 보너스
+        const stageClearScore = window.scoreManager.addStageClearScore();
+
+        // 시간 보너스
+        const timeBonus = window.scoreManager.calculateTimeBonus();
+
+        // 최종 점수
+        const finalScore = window.scoreManager.getCurrentScore();
+        this.registry.set('currentScore', finalScore);
+
+        if (CONSTANTS.GAME.DEBUG) {
+            console.log('스테이지 클리어 점수:', stageClearScore);
+            console.log('시간 보너스:', timeBonus);
+            console.log('최종 점수:', finalScore);
+        }
+
+        // 저장 데이터 업데이트
         const saveData = window.saveManager.load();
         window.saveManager.clearStage(this.stageNumber, clearTime, saveData);
 
