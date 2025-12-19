@@ -1,0 +1,21 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main  # 또는 배포를 원하는 브랜치명
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout 🛎️
+        uses: actions/checkout@v4
+
+      - name: Deploy to GitHub Pages 🚀
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+          publish_dir: .  # 빌드 과정이 없으므로 루트 폴더 전체를 배포
+          # 필요 없는 폴더/파일 제외 (예: server 폴더, deploy_key_guide.md 등)
+          exclude_assets: '.git,server,github-deploy-key*,deploy_key_guide.md,project-repo'
