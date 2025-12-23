@@ -91,14 +91,10 @@ class BossRushScene extends Phaser.Scene {
             this.bossDefeated = false;
             this.isTransitioning = false;
 
-            // 보스 순서 (7개 모든 보스, 난이도 순)
+            // 보스 순서 (3개 보스, 난이도 순)
             this.bossSequence = [
                 { name: 'SlimeBoss', class: window.SlimeBoss, title: 'SLIME KING', color: '#00ff00' },
-                { name: 'BlueBirdBoss', class: window.BlueBirdBoss, title: 'SKY TERROR', color: '#00aaff' },
-                { name: 'CoopBoss', class: window.CoopBoss, title: 'ROOSTER WARRIOR', color: '#ff8800' },
-                { name: 'SwordBoss', class: window.SwordBoss, title: 'BLADE MASTER', color: '#ffff00' },
                 { name: 'RinoBoss', class: window.RinoBoss, title: 'RAGING RHINO', color: '#808080' },
-                { name: 'MageBoss', class: window.MageBoss, title: 'ARCHMAGE', color: '#aa00ff' },
                 { name: 'SkullBoss', class: window.SkullBoss, title: 'DEATH SKULL', color: '#ff0000' }
             ];
 
@@ -410,7 +406,7 @@ class BossRushScene extends Phaser.Scene {
         const bossText = this.add.text(
             CONSTANTS.GAME.WIDTH / 2,
             CONSTANTS.GAME.HEIGHT / 2,
-            `⚠️ BOSS ${bossIndex + 1}/7 ⚠️\n${bossInfo.title}`,
+            `⚠️ BOSS ${bossIndex + 1}/${this.bossSequence.length} ⚠️\n${bossInfo.title}`,
             {
                 fontSize: '48px',
                 fill: bossInfo.color,
@@ -950,7 +946,7 @@ class BossRushScene extends Phaser.Scene {
     updateUI() {
         // 보스 진행도
         if (this.bossCountText) {
-            this.bossCountText.setText(`BOSS: ${this.currentBossIndex + 1}/7`);
+            this.bossCountText.setText(`BOSS: ${this.currentBossIndex + 1}/${this.bossSequence.length}`);
         }
 
         // 타이머 업데이트
